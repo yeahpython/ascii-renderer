@@ -64,8 +64,8 @@ function handle2DBufferDimensionChange(w, h){
   VIEWPORT_WIDTH = w;
 
   // Put the middle of the render box in the middle of the display.
-  RENDERING_BASEPOINT_X = VIEWPORT_WIDTH / 2 - render_x;
-  RENDERING_BASEPOINT_Y = VIEWPORT_HEIGHT / 2 - render_y;
+  RENDERING_BASEPOINT_X = ~~(VIEWPORT_WIDTH / 2 - render_x);
+  RENDERING_BASEPOINT_Y = ~~(VIEWPORT_HEIGHT / 2 - render_y);
 
   resizeBuffers();
 };
@@ -328,6 +328,7 @@ function physics(blocks) {
     }
   }
 }
+
 var keyStates = [false, false, false, false, false];
 
 function setString() {
@@ -403,7 +404,7 @@ function resizeBuffers() {
   depthBuffer = generateDepthBuffer(VIEWPORT_HEIGHT, VIEWPORT_WIDTH);
 }
 
-function manipulateText() {
+function startAnimationLoop() {
   if (LOOP_ACTIVE === false){
     LOOP_ACTIVE = true;
     blocks = generateBlockArray(HEIGHT, WIDTH, DEPTH);
@@ -695,18 +696,95 @@ function projectOut(blocks) {
   }*/
 }
 
-
-function update(blocks, sortedCoordinates) {
+function auto_resize() {
   var displayText = document.getElementById('active-text');
   w = Math.round(displayText.offsetWidth / 8) + 14;
-  old_viewport_width = ~~VIEWPORT_WIDTH;
-  h = Math.round(50);
-  handle2DBufferDimensionChange(w, h);
+  h = 50;
   var displayChanged = false;
-  if (VIEWPORT_WIDTH !== old_viewport_width) {
-    console.log("display parameters were changed from " + old_viewport_width + " to " + VIEWPORT_WIDTH);
+  if (VIEWPORT_WIDTH !== w) {
+    console.log("Display width was changed from " + VIEWPORT_WIDTH + " to " + w);
     displayChanged = true;
   }
+  handle2DBufferDimensionChange(w, h);
+  return displayChanged;
+}
+
+function physics_update() {
+  pvz += -0.01;
+  var a = 0.01;
+  if (keyStates[0]) { // A
+    pvx += a;
+  }
+  if (keyStates[2]) { // D
+    pvx -= a;
+  }
+  if (keyStates[1]) { // W
+    pvy -= a;
+  }
+  if (keyStates[3]) { // S
+    pvy += a;
+  }
+  if (keyStates[4]) {
+    pvz += 2 * a;
+  }
+
+  if (!keyStates[0] && !keyStates[1] && !keyStates[2] && !keyStates[3] && !keyStates[4]) {
+    pvx *= 0.9;
+    pvy *= 0.9;
+    pvz *= 0.9;
+  }
+
+  if (pvz >= 1.0) {
+    pvz = 1.0;
+  }
+  if (pvz <= -1.0) {
+    pvz = -1.0;
+  }
+
+  if (pvx >= 1.0) {
+    pvx = 1.0;
+  }
+  if (pvx <= -1.0) {
+    pvx = -1.0;
+  }
+
+  if (pvy >= 1.0) {
+    pvy = 1.0;
+  }
+  if (pvy <= -1.0) {
+    pvy = -1.0;
+  }
+
+
+
+
+  mini_vx = pvx / 10;
+  mini_vy = pvy / 10;
+  mini_vz = pvz / 10;
+  for (var _ = 0; _ < 10; ++_) {
+    px += pvx;
+    py += pvy;
+    pz += pvz;
+    /*if (pz < 2.5) {
+      pz = 2.5;
+    }*/
+
+    // Collision detection and pushing the player out of blocks
+    projectOut(blocks);
+  }
+}
+
+function update_discrete_coordinates() {
+  playerpos[0] = Math.floor(pz);
+  playerpos[1] = Math.floor(px);
+  playerpos[2] = Math.floor(py);
+
+  player_z_rendering_offset = Math.round(2 * (pz - Math.floor(pz)) - (py - Math.floor(py)));
+  player_x_rendering_offset = Math.round(3 * (px - Math.floor(px)) - 2 * (py - Math.floor(py)));
+}
+
+function update(blocks, sortedCoordinates) {
+  var displayChanged = auto_resize();
 
   var oldpos = playerpos.slice(0);
   var oldoffset = [offsetZ, offsetX, offsetY];
@@ -715,92 +793,10 @@ function update(blocks, sortedCoordinates) {
 
   // Position and velocity update
   if (LEVEL != 1) {
-    pvz += -0.01;
-    var a = 0.01;
-    if (keyStates[0]) { // A
-      pvx += a;
-    }
-    if (keyStates[2]) { // D
-      pvx -= a;
-    }
-    if (keyStates[1]) { // W
-      pvy -= a;
-    }
-    if (keyStates[3]) { // S
-      pvy += a;
-    }
-    if (keyStates[4]) {
-      pvz += 2 * a;
-    }
-
-    if (!keyStates[0] && !keyStates[1] && !keyStates[2] && !keyStates[3] && !keyStates[4]) {
-      pvx *= 0.9;
-      pvy *= 0.9;
-      pvz *= 0.9;
-    }
-
-    if (pvz >= 1.0) {
-      pvz = 1.0;
-    }
-    if (pvz <= -1.0) {
-      pvz = -1.0;
-    }
-
-    if (pvx >= 1.0) {
-      pvx = 1.0;
-    }
-    if (pvx <= -1.0) {
-      pvx = -1.0;
-    }
-
-    if (pvy >= 1.0) {
-      pvy = 1.0;
-    }
-    if (pvy <= -1.0) {
-      pvy = -1.0;
-    }
-
-
-
-
-    mini_vx = pvx / 10;
-    mini_vy = pvy / 10;
-    mini_vz = pvz / 10;
-    for (var _ = 0; _ < 10; ++_) {
-      px += pvx;
-      py += pvy;
-      pz += pvz;
-      /*if (pz < 2.5) {
-        pz = 2.5;
-      }*/
-
-      // Collision detection and pushing the player out of blocks
-      projectOut(blocks);
-    }
-
-
-
-    playerpos[0] = Math.floor(pz);
-    playerpos[1] = Math.floor(px);
-    playerpos[2] = Math.floor(py);
-
-
-    player_z_rendering_offset = Math.round(2 * (pz - Math.floor(pz)) - (py - Math.floor(py)));
-    player_x_rendering_offset = Math.round(3 * (px - Math.floor(px)) - 2 * (py - Math.floor(py)));
+    physics_update();
+    update_discrete_coordinates();
   }
 
-
-
-  var resetblocks = false;
-
-  var x_space = WIDTH / 2 - 4;
-  var y_space = DEPTH / 2 - 4;
-  var z_space = HEIGHT / 2 - 4;
-  offsetX = 30;
-  offsetY = 20;
-  offsetZ = 0;
-
-  resetblocks = true;
 
   if (LEVEL == 1) {
     playerpos = [0,0,0];
@@ -813,29 +809,26 @@ function update(blocks, sortedCoordinates) {
     offsetX = 35 - playerpos[1];
   }
 
-  // #*+-
-
+  // Detect if redraw is necessary
   var positionChanged = oldpos[0] != playerpos[0] || oldpos[1] != playerpos[1] || oldpos[2] != playerpos[2];
   var offsetChanged = offsetZ != oldoffset[0] || offsetX != oldoffset[1] || offsetY != oldoffset[2];
   var player_x_rendering_offset_changed = player_x_rendering_offset != old_player_x_rendering_offset;
   var player_z_rendering_offset_changed = player_z_rendering_offset != old_player_z_rendering_offset;
-
-
   var needRedraw = /*positionChanged ||*/ offsetChanged || player_z_rendering_offset_changed || player_x_rendering_offset_changed || (LEVEL==1) || displayChanged;
+
+
   if (needRedraw) {
-    if (resetblocks) {
-      setWaves(blocks, sortedCoordinates);
-    }
+    setWaves(blocks, sortedCoordinates);
 
     if (1 || offsetChanged) {
-      try {
+      // try {
         //console.log(playerpos[0], playerpos[1], playerpos[2]);
         blocks[playerpos[0] + offsetZ][playerpos[1] + offsetX][playerpos[2]+offsetY] = 2;
         render(blocks, sortedCoordinates);
-      } catch (e){
-        console.log(e.message);
-      } finally {
-      }
+      // } catch (e){
+      //   console.log(e.message);
+      // } finally {
+      // }
       // renderBuffer should contain a map of the non-player environment here.
     } else {
       // old renderBuffer can still be used
@@ -852,7 +845,7 @@ function update(blocks, sortedCoordinates) {
 function initialize() {
   document.addEventListener("keydown", keyDownHandler, false);
   document.addEventListener("keyup", keyUpHandler, false);
-  manipulateText();
+  startAnimationLoop();
 }
 
 function keyDownHandler(event)
