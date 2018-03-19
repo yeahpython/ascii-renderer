@@ -1,85 +1,88 @@
+// Debug message to show above the main scene.
 var debug_message = "";
+
+// The dimensions of the three-dimensional buffer used to store a slice
+// of the world map.
 var HEIGHT = 20;
 var WIDTH = 90;
 var DEPTH = 90;
+
+// The three-dimensional center of the buffer area.
+var z_center = HEIGHT / 2;
+var x_center = WIDTH / 2;
+var y_center = DEPTH / 2;
+
+// The two-dimensional offset of the three-dimensional center from the
+// two-dimensional rendered position of the [0,0,0].
+var render_x = -3 * x_center + 2 * y_center;
+var render_y = -2 * z_center + y_center;
+
+// Uncropped dimensions of the two-dimensional buffer used to store renderings
+// of the 3D scene. This may have roughness around the edges.
 var VIEWPORT_HEIGHT, VIEWPORT_WIDTH;
-var z_center, x_center, y_center;
-z_center = HEIGHT / 2;
-x_center = WIDTH / 2;
-y_center = DEPTH / 2;
-var render_x, render_y;
-render_x = -3 * x_center + 2 * y_center;
-render_y = -2 * z_center + y_center;
+
+// Reference coordinate from which to render all 3D objects.
 var RENDERING_BASEPOINT_X, RENDERING_BASEPOINT_Y;
+
+// Fine-grained offset of player from their cube coordinate, used to enable sub-
+// block-sized motion.
 var player_x_rendering_offset = 0; // should be 0, 1  or 2
-var render_x_offset = 0;
-var render_z_offset = 0;
 var player_z_rendering_offset = 0;
 
+// Fine-grained offset of rendering from the rendering basepoint, used to enable
+// sub-block-sized motion
+var render_x_offset = 0;
+var render_z_offset = 0;
+
+// Float coordinates of the user relative to the world coordinates.
 var px = 0.0;
 var py = 0.0;
 var pz = 10.0;
+
+// Velocity of the user.
 var pvx = 0.02;
 var pvy = 0.02;
 var pvz = 0.0;
 
-
-// These offsets are the offset of the "world" in "blocks" coordinates.
+// These offsets are the offset of the world coordinates from the buffer slice coordinates.
 var offsetZ = 0;
 var offsetX = 30;
 var offsetY = 20;
 
-// This is the coordinate of the player in world coordinates.
+// This is the (block) coordinate of the player in world coordinates.
 var playerpos = [HEIGHT -1 /* z */, 0 /* x */, 0 /* y */];
 
 var LEVEL = 0;
 
-var setDisplayParameters = function(w, h){
-  // var VIEWPORT_HEIGHT = 1 + 2 * HEIGHT + DEPTH ;
-  // var VIEWPORT_WIDTH = 10 + 3*WIDTH + 2 * DEPTH ;
-  // VIEWPORT_HEIGHT = 40;
-  // VIEWPORT_WIDTH = 80;
-  var needBufferResize = (VIEWPORT_WIDTH !== w || VIEWPORT_HEIGHT !== h);
+// Modify buffer sizes and change rendering parameters according to the provided dimensions.
+function handle2DBufferDimensionChange(w, h){
+  if (VIEWPORT_WIDTH == w && VIEWPORT_HEIGHT == h) {
+    return;
+  }
+
   VIEWPORT_HEIGHT = h;
-  VIEWPORT_WIDTH = w; // was 89
+  VIEWPORT_WIDTH = w;
 
-  // I want to automatically set these so that the middle of the render box is at the middle of the display.
-
-
-
-
+  // Put the middle of the render box in the middle of the display.
   RENDERING_BASEPOINT_X = VIEWPORT_WIDTH / 2 - render_x;
   RENDERING_BASEPOINT_Y = VIEWPORT_HEIGHT / 2 - render_y;
-  // this is to coerce the float into integers
-  RENDERING_BASEPOINT_X = ~~(RENDERING_BASEPOINT_X);
-  RENDERING_BASEPOINT_Y = ~~(RENDERING_BASEPOINT_Y);
-  if (needBufferResize) {
-    console.log("resizing buffers.");
-    resizeBuffers();
-  }
-  //RENDERING_BASEPOINT_X = 100;
-  //RENDERING_BASEPOINT_Y = -1;
+
+  resizeBuffers();
 };
 
-setDisplayParameters(139, 49);
+handle2DBufferDimensionChange(139, 49);
 
+// Returns a list of 3D coordinates corresponding to the blocks that will be rendered completely
+// into the 2D buffer, sorted so that blocks always appear earlier than any blocks that cover them.
 function getSortedCoordinates(blocks){
-  var coordinates =[];
+  var coordinates = [];
   var X = blocks[0].length;
   var Y = blocks[0][0].length;
   var Z = blocks.length;
 
-  //                                       z  x  y
-  // want a shape aligned with the vector [3, 4, 6]
   for (var x = 0; x < X; x++) {
     for (var y = 0; y < Y; y++) {
       for (var z = 0; z < Z; z++) {
-        /*x_projected = x - 0.666666 * y;
-        z_projected = z - 0.5 * y;
-        if (x_projected * x_projected + z_projected * z_projected < 20 * 20) {
-          coordinates.push([z,x,y]);
-        }*/
-
         var YY = RENDERING_BASEPOINT_Y -2*z      +  y;
         var XX = RENDERING_BASEPOINT_X      -3*x + 2*y;
         // YY >= 1 is because cropping may move
@@ -90,7 +93,6 @@ function getSortedCoordinates(blocks){
       }
     }
   }
-  //coordinates.sort(function(a,b){return a[0] + a[1] + a[2] - b[0] - b[1] - b[2]})
   return coordinates;
 }
 
@@ -395,6 +397,7 @@ function generateDepthBuffer(rows, cols) {
 
 var lines, renderBuffer, depthBuffer;
 function resizeBuffers() {
+  console.log("Resizing buffers.");
   lines = generateLines(VIEWPORT_HEIGHT, VIEWPORT_WIDTH);
   renderBuffer = generateLines(VIEWPORT_HEIGHT, VIEWPORT_WIDTH);
   depthBuffer = generateDepthBuffer(VIEWPORT_HEIGHT, VIEWPORT_WIDTH);
@@ -698,7 +701,7 @@ function update(blocks, sortedCoordinates) {
   w = Math.round(displayText.offsetWidth / 8) + 14;
   old_viewport_width = ~~VIEWPORT_WIDTH;
   h = Math.round(50);
-  setDisplayParameters(w, h);
+  handle2DBufferDimensionChange(w, h);
   var displayChanged = false;
   if (VIEWPORT_WIDTH !== old_viewport_width) {
     console.log("display parameters were changed from " + old_viewport_width + " to " + VIEWPORT_WIDTH);
