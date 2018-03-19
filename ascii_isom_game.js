@@ -1,6 +1,9 @@
 // Debug message to show above the main scene.
 var debug_message = "";
 
+// 3D buffer storing block data
+var blocks;
+
 // The dimensions of the three-dimensional buffer used to store a slice
 // of the world map.
 var HEIGHT = 20;
@@ -67,10 +70,11 @@ function handle2DBufferDimensionChange(w, h){
   RENDERING_BASEPOINT_X = ~~(VIEWPORT_WIDTH / 2 - render_x);
   RENDERING_BASEPOINT_Y = ~~(VIEWPORT_HEIGHT / 2 - render_y);
 
+  sortedCoordinates = getSortedCoordinates(blocks);
   resizeBuffers();
 };
 
-handle2DBufferDimensionChange(139, 49);
+// handle2DBufferDimensionChange(139, 49);
 
 // Returns a list of 3D coordinates corresponding to the blocks that will be rendered completely
 // into the 2D buffer, sorted so that blocks always appear earlier than any blocks that cover them.
@@ -87,12 +91,13 @@ function getSortedCoordinates(blocks){
         var XX = RENDERING_BASEPOINT_X      -3*x + 2*y;
         // YY >= 1 is because cropping may move
         // Similar for VIEWPORT_HEIGHT - 1
-        if ( XX -1  >= 0 && XX + 4 < VIEWPORT_WIDTH && YY >= 1 && YY + 3 < VIEWPORT_HEIGHT - 1) {
+        if ( XX -1  >= 0 && XX + 4 < VIEWPORT_WIDTH && YY >= 1 && YY + 3 < VIEWPORT_HEIGHT - 2) {
           coordinates.push([z,x,y]);
         }
       }
     }
   }
+  console.log("getSortedCoordinates");
   return coordinates;
 }
 
@@ -408,9 +413,7 @@ function startAnimationLoop() {
   if (LOOP_ACTIVE === false){
     LOOP_ACTIVE = true;
     blocks = generateBlockArray(HEIGHT, WIDTH, DEPTH);
-    resizeBuffers();
-    sortedCoordinates = getSortedCoordinates(blocks);
-    setWaves(blocks, sortedCoordinates);
+    auto_resize();
     update(blocks, sortedCoordinates);
   }
 }
