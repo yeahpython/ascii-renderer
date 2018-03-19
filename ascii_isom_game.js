@@ -428,7 +428,7 @@ function render_alternative(blocks, sortedCoordinates, lines, renderBuffer, dept
 
 function render(blocks, sortedCoordinates) {
   render_x_offset = player_x_rendering_offset;
-  render_y_offset = player_z_rendering_offset;
+  render_z_offset = player_z_rendering_offset;
   var X = RENDERING_BASEPOINT_X + render_x_offset; // rightward shift of basepoint
   var Y = RENDERING_BASEPOINT_Y + render_z_offset; // downward shift of basepoint
   clear(lines);
