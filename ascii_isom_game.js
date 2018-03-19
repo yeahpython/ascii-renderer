@@ -215,7 +215,7 @@ var setDisplayParameters = function(w, h){
   //RENDERING_BASEPOINT_Y = -1;
 };
 
-setDisplayParameters(139, 50);
+setDisplayParameters(139, 49);
 
 function getSortedCoordinates(blocks){
   var coordinates =[];
@@ -581,30 +581,27 @@ function render(blocks, sortedCoordinates) {
           //lines[YY+2][XX+3] = "~";
         }
       else {
-        /*lines[YY + 2][XX + 0] = "<span style = \"color:white\">y</span>";
-        lines[YY + 2][XX + 1] = "<span style = \"color:white\">o</span>";
-        lines[YY + 2][XX + 2] = "<span style = \"color:white\">u</span>";*/
+        lines[YY + 2 - player_z_rendering_offset][XX + 0 + 2 - player_x_rendering_offset] = "<span style = \"color:white\">u</span>";
+        // lines[YY + 2 - player_z_rendering_offset][XX + 1 + 2 - player_x_rendering_offset] = "<span style = \"color:white\">o</span>";
+        // lines[YY + 2 - player_z_rendering_offset][XX + 2 + 2 - player_x_rendering_offset] = "<span style = \"color:white\">u</span>";
 
         //lines[YY + 2][XX + 0] = "<span style = \"color:#00FF00; background-color:black\">y</span>";
         //lines[YY + 2][XX + 1] = "<span style = \"color:#00FF00; background-color:black\">o</span>";
         //lines[YY + 2][XX + 2] = "<span style = \"color:#00FF00; background-color:black\">u</span>";
 
+
+        // lines[YY + 2][XX + 0] = "<span style = \"color:#C3834C; background-color:black\">d</span>";
+        // lines[YY + 2][XX + 1] = "<span style = \"color:#C3834C; background-color:black\">o</span>";
+        // lines[YY + 2][XX + 2] = "<span style = \"color:#C3834C; background-color:black\">g</span>";
+
         /*
-        lines[YY + 2][XX + 0] = "<span style = \"color:#C3834C; background-color:black\">d</span>";
-        lines[YY + 2][XX + 1] = "<span style = \"color:#C3834C; background-color:black\">o</span>";
-        lines[YY + 2][XX + 2] = "<span style = \"color:#C3834C; background-color:black\">g</span>";
-        */
         for (var u = -2; u < 3; u++) {
           for (var v = -4; v < 5; v++) {
             var distance = Math.abs(player_x_rendering_offset - v - (3 * (px - Math.floor(px)) - 2 * (py - Math.floor(py)))) / 1.5 +
                            Math.abs(player_z_rendering_offset - u - (2 * (pz - Math.floor(pz)) - (py - Math.floor(py))));
             var symbol = " ";
             if (distance <= 1.5) {
-              symbol = "*";
-            } else if (distance <= 2.0) {
               symbol = "+";
-            } else if (distance <= 2.5) {
-              symbol = "~";
             } else if (distance <= 3.5) {
               symbol = "-";
             }
@@ -612,8 +609,9 @@ function render(blocks, sortedCoordinates) {
               //lines[YY + 2 - player_z_rendering_offset + u][XX + 2 - player_x_rendering_offset + v] = "<span style = \"color:#C3834C; background-color:black\">"+symbol+"</span>";
              lines[YY + 2 - player_z_rendering_offset + u][XX + 2 - player_x_rendering_offset + v] = symbol;
             }
+          }
         }
-      }
+        */
 
 /*
         lines[YY][XX+1] = "*";
@@ -662,8 +660,8 @@ function setString() {
     skipInitial = 16;
     skipEnd = 14;
   }
-  var leftcut = 12;
-  var rightcut = 12;
+  var leftcut = 0;
+  var rightcut = 0;
   for (var i = skipInitial; i < lines.length-skipEnd; i++) {
     partialJoin.push ('<br>' + lines[i].slice(5 + leftcut, VIEWPORT_WIDTH - 4 - rightcut).join(""));
   }
@@ -1127,9 +1125,9 @@ function update(blocks, sortedCoordinates) {
     offsetX = x_center;
     offsetY = y_center;
   } else {
-    offsetZ = 5 - playerpos[0];
-    offsetY = 20 - playerpos[2];
-    offsetX = 30 - playerpos[1];
+    offsetZ = 6 - playerpos[0];
+    offsetY = 30 - playerpos[2];
+    offsetX = 35 - playerpos[1];
   }
 
   // #*+-
@@ -1140,8 +1138,8 @@ function update(blocks, sortedCoordinates) {
   var player_z_rendering_offset_changed = player_z_rendering_offset != old_player_z_rendering_offset;
 
 
-  var needRedraw = positionChanged || offsetChanged || player_z_rendering_offset_changed || player_x_rendering_offset_changed || (LEVEL==1) || displayChanged;
-  if (1 || needRedraw) {
+  var needRedraw = /*positionChanged ||*/ offsetChanged || player_z_rendering_offset_changed || player_x_rendering_offset_changed || (LEVEL==1) || displayChanged;
+  if (needRedraw) {
     if (resetblocks) {
       setWaves(blocks, sortedCoordinates);
     }
