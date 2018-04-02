@@ -72,9 +72,10 @@ var WETLANDS = 0;
 var SPINNING_SECTORS = 1;
 var RECTANGLES = 2;
 var CUBE_FRAME = 3;
+var INTRO = 4
 
 // Hardcoded level.
-var LEVEL = WETLANDS;
+var LEVEL = INTRO;
 
 // Enumeration of block types.
 var EMPTY = 0;
@@ -82,6 +83,7 @@ var SOLID_BLOCK = 1;
 var PLAYER = 2;
 var STREET_LIGHT = 3;
 var WAVE = 4;
+var INVISIBLE_BLOCK = 5;
 
 var force_redraw = true;
 
@@ -156,198 +158,201 @@ function render(blocks, sortedCoordinates) {
     var x = c[1];
     var y = c[2];
     var depth = x + y + z;
-    if (blocks[z][x][y] !== 0) {
-      var hasXNeighbor = (x > 0 && blocks[z][x-1][y] == 1);
-      var hasYNeighbor = (y > 0 && blocks[z][x][y-1] == 1);
-      var hasZNeighbor = (z > 0 && blocks[z-1][x][y] == 1);
-      var hasXZNeighbor = (x > 0)  && (z + 1 < HEIGHT) && (blocks[z+1][x-1][y] == 1);
-      var hasXYNeighbor = (x > 0)  && (y + 1 < DEPTH) && (blocks[z][x-1][y+1] == 1);
-      var hasYXNeighbor = (y > 0)  && (x + 1 < WIDTH) && (blocks[z][x+1][y-1] == 1);
-      var hasYZNeighbor = (y > 0)  && (z + 1 < HEIGHT) && (blocks[z+1][x][y-1] == 1);
-      var hasZXNeighbor = (z > 0)  && (x + 1 < WIDTH) && (blocks[z-1][x+1][y] == 1);
-      var hasZYNeighbor = (z > 0)  && (y + 1 < DEPTH) && (blocks[z-1][x][y+1] == 1);
 
-      var hasYZXNeighbor = (y > 0) && (x > 0) && (z + 1 < HEIGHT) && (blocks[z+1][x-1][y-1] == 1);
+    if (blocks[z][x][y] == EMPTY || blocks[z][x][y] == INVISIBLE_BLOCK) {
+      continue;
+    }
 
-      var hasYXBehindNeighbor = (y > 0) && (x > 0) && (blocks[z][x-1][y-1] == 1);
+    var hasXNeighbor = (x > 0 && blocks[z][x-1][y] == SOLID_BLOCK);
+    var hasYNeighbor = (y > 0 && blocks[z][x][y-1] == SOLID_BLOCK);
+    var hasZNeighbor = (z > 0 && blocks[z-1][x][y] == SOLID_BLOCK);
+    var hasXZNeighbor = (x > 0)  && (z + 1 < HEIGHT) && (blocks[z+1][x-1][y] == SOLID_BLOCK);
+    var hasXYNeighbor = (x > 0)  && (y + 1 < DEPTH) && (blocks[z][x-1][y+1] == SOLID_BLOCK);
+    var hasYXNeighbor = (y > 0)  && (x + 1 < WIDTH) && (blocks[z][x+1][y-1] == SOLID_BLOCK);
+    var hasYZNeighbor = (y > 0)  && (z + 1 < HEIGHT) && (blocks[z+1][x][y-1] == SOLID_BLOCK);
+    var hasZXNeighbor = (z > 0)  && (x + 1 < WIDTH) && (blocks[z-1][x+1][y] == SOLID_BLOCK);
+    var hasZYNeighbor = (z > 0)  && (y + 1 < DEPTH) && (blocks[z-1][x][y+1] == SOLID_BLOCK);
 
-      //var hasXPlusYPlusNeighbor = (x+1 < WIDTH) && (y+1 < DEPTH) $$ ( blocks[z][x+1][y+1] == 1);
+    var hasYZXNeighbor = (y > 0) && (x > 0) && (z + 1 < HEIGHT) && (blocks[z+1][x-1][y-1] == SOLID_BLOCK);
 
-      var YY = Y -2*z      +  y;
-      var XX = X      -3*x + 2*y;
+    var hasYXBehindNeighbor = (y > 0) && (x > 0) && (blocks[z][x-1][y-1] == SOLID_BLOCK);
 
-      if (YY + 3 > lines.length) {
-        throw RangeError("index " + (YY+3) +" out of range.");
-      }
+    //var hasXPlusYPlusNeighbor = (x+1 < WIDTH) && (y+1 < DEPTH) $$ ( blocks[z][x+1][y+1] == 1);
 
-      if (blocks[z][x][y] == SOLID_BLOCK){
-        /*depthBuffer[YY][XX] = depth;
-        depthBuffer[YY][XX + 1] = depth;
-        depthBuffer[YY][XX+2] = depth;
+    var YY = Y -2*z      +  y;
+    var XX = X      -3*x + 2*y;
 
-        depthBuffer[YY+1][XX-1] = depth;
-        depthBuffer[YY+1][XX  ] = depth;
-        depthBuffer[YY+1][XX+1] = depth;
-        depthBuffer[YY+1][XX+2] = depth;
-        depthBuffer[YY+1][XX+3] = depth;
+    if (YY + 3 > lines.length) {
+      throw RangeError("index " + (YY+3) +" out of range.");
+    }
 
-        depthBuffer[YY+2][XX-1] = depth;
-        depthBuffer[YY+2][XX  ] = depth;
-        depthBuffer[YY+2][XX+1] = depth;
-        depthBuffer[YY+2][XX+2] = depth;
-        depthBuffer[YY+2][XX+3] = depth;
-        depthBuffer[YY+2][XX+4] = depth;
+    if (blocks[z][x][y] == SOLID_BLOCK){
+      /*depthBuffer[YY][XX] = depth;
+      depthBuffer[YY][XX + 1] = depth;
+      depthBuffer[YY][XX+2] = depth;
 
-        depthBuffer[YY+3][XX-1] = depth;
-        depthBuffer[YY+3][XX  ] = depth;
-        depthBuffer[YY+3][XX+1] = depth;
-        depthBuffer[YY+3][XX+2] = depth;
-        depthBuffer[YY+3][XX+3] = depth;
-        depthBuffer[YY+3][XX+4] = depth;*/
+      depthBuffer[YY+1][XX-1] = depth;
+      depthBuffer[YY+1][XX  ] = depth;
+      depthBuffer[YY+1][XX+1] = depth;
+      depthBuffer[YY+1][XX+2] = depth;
+      depthBuffer[YY+1][XX+3] = depth;
+
+      depthBuffer[YY+2][XX-1] = depth;
+      depthBuffer[YY+2][XX  ] = depth;
+      depthBuffer[YY+2][XX+1] = depth;
+      depthBuffer[YY+2][XX+2] = depth;
+      depthBuffer[YY+2][XX+3] = depth;
+      depthBuffer[YY+2][XX+4] = depth;
+
+      depthBuffer[YY+3][XX-1] = depth;
+      depthBuffer[YY+3][XX  ] = depth;
+      depthBuffer[YY+3][XX+1] = depth;
+      depthBuffer[YY+3][XX+2] = depth;
+      depthBuffer[YY+3][XX+3] = depth;
+      depthBuffer[YY+3][XX+4] = depth;*/
 
 
-        lines[YY][XX] = (hasYNeighbor && !hasYZNeighbor) ? " " :"_";     //str(i)
-        lines[YY][XX + 1] = (hasYNeighbor && !hasYZNeighbor) ? (hasYZXNeighbor ? lines[YY][XX + 1] : " ") :(hasYXBehindNeighbor? lines[YY][XX+1]:"_");
+      lines[YY][XX] = (hasYNeighbor && !hasYZNeighbor) ? " " :"_";     //str(i)
+      lines[YY][XX + 1] = (hasYNeighbor && !hasYZNeighbor) ? (hasYZXNeighbor ? lines[YY][XX + 1] : " ") :(hasYXBehindNeighbor? lines[YY][XX+1]:"_");
 
-        if (hasXZNeighbor) {
-          lines[YY][XX + 2] = "|";
-        } else {
-          if (hasYNeighbor && !hasYZNeighbor) {
-            if (!hasYZXNeighbor) {
-              if (!hasYXBehindNeighbor) {
-                lines[YY][XX + 2] = "\\";
-              } else {
-                lines[YY][XX + 2] = " ";
-                }
-            }
-          } else {
-            lines[YY][XX + 2] = "_";
-          }
-        }
-
-        lines[YY + 1][XX - 1] = (hasYNeighbor && !hasYXNeighbor) ? " " :"|";
-        lines[YY + 1][XX] = "\\";
-        lines[YY + 1][XX + 1] = "_";
-        lines[YY + 1][XX + 2] = "_";
-        lines[YY + 1][XX + 3] = (hasXNeighbor && !hasXZNeighbor) ? "_" : "\\";
-        lines[YY + 2][XX - 1] = (hasYNeighbor && !hasYXNeighbor) ? " " :"|";
-        lines[YY + 2][XX]     = " ";
-        lines[YY + 2][XX + 1] = "|";
-
-        lines[YY + 2][XX + 2] = " ";
-        lines[YY + 2][XX + 3] = " ";
-        if (hasXNeighbor && !hasXYNeighbor){
-          lines[YY + 2][XX + 4] = " ";
-        } else{
-          lines[YY + 2][XX + 4] = "|";
-      }
-        lines[YY + 3][XX]     = (hasZNeighbor && !hasZXNeighbor) ? " " : "\\"; //should be " " and "\\"
-        lines[YY + 3][XX + 1] = "|";
-        if (hasZNeighbor && !hasZYNeighbor) {
-          lines[YY + 3][XX + 2] = " ";
-          lines[YY + 3][XX + 3] = " ";
-        } else {
-          lines[YY + 3][XX + 2] = "_";
-          lines[YY + 3][XX + 3] = "_";
-        }
-        if (hasXYNeighbor) {
-          lines[YY + 3][XX + 4] = "|";
-        } else if (hasXNeighbor){
-          if (hasZNeighbor && !hasZYNeighbor) {
-            lines[YY + 3][XX + 4] = " ";
-          } else {
-            lines[YY + 3][XX + 4] = "_";
+      if (hasXZNeighbor) {
+        lines[YY][XX + 2] = "|";
+      } else {
+        if (hasYNeighbor && !hasYZNeighbor) {
+          if (!hasYZXNeighbor) {
+            if (!hasYXBehindNeighbor) {
+              lines[YY][XX + 2] = "\\";
+            } else {
+              lines[YY][XX + 2] = " ";
+              }
           }
         } else {
-          lines[YY + 3][XX + 4] = "|";
+          lines[YY][XX + 2] = "_";
         }
-      } else if (blocks[z][x][y] == STREET_LIGHT){
+      }
 
-        /*depthBuffer[YY + 1][XX + 2] = depth;
-        depthBuffer[YY + 1][XX + 3] = depth;
-        depthBuffer[YY + 1][XX + 4] = depth;
-        depthBuffer[YY + 2][XX + 2] = depth;
-        depthBuffer[YY + 2][XX + 3] = depth;
-        depthBuffer[YY + 2][XX + 4] = depth;
-        depthBuffer[YY + 3][XX + 2] = depth;
-        depthBuffer[YY + 3][XX + 3] = depth;
-        depthBuffer[YY + 3][XX + 4] = depth;*/
+      lines[YY + 1][XX - 1] = (hasYNeighbor && !hasYXNeighbor) ? " " :"|";
+      lines[YY + 1][XX] = "\\";
+      lines[YY + 1][XX + 1] = "_";
+      lines[YY + 1][XX + 2] = "_";
+      lines[YY + 1][XX + 3] = (hasXNeighbor && !hasXZNeighbor) ? "_" : "\\";
+      lines[YY + 2][XX - 1] = (hasYNeighbor && !hasYXNeighbor) ? " " :"|";
+      lines[YY + 2][XX]     = " ";
+      lines[YY + 2][XX + 1] = "|";
 
-
-        lines[YY + 1][XX + 2] = ":";
-        //lines[YY + 1][XX + 3] = "<span style = \"color:yellow\">*</span>";
-        lines[YY + 1][XX + 3] = "*";
-        lines[YY + 1][XX + 4] = ":";
-        lines[YY + 2][XX + 2] = " ";
-        lines[YY + 2][XX + 3] = "|";
+      lines[YY + 2][XX + 2] = " ";
+      lines[YY + 2][XX + 3] = " ";
+      if (hasXNeighbor && !hasXYNeighbor){
         lines[YY + 2][XX + 4] = " ";
+      } else{
+        lines[YY + 2][XX + 4] = "|";
+    }
+      lines[YY + 3][XX]     = (hasZNeighbor && !hasZXNeighbor) ? " " : "\\"; //should be " " and "\\"
+      lines[YY + 3][XX + 1] = "|";
+      if (hasZNeighbor && !hasZYNeighbor) {
         lines[YY + 3][XX + 2] = " ";
-        lines[YY + 3][XX + 3] = "|";
-        lines[YY + 3][XX + 4] = " ";
-      } else if (blocks[z][x][y] == WAVE){
-          //lines[YY+2][XX-1] = "~";
-          //lines[YY+2][XX+0] = "<span style = \"color:blue\">s</span>";
-          //lines[YY+2][XX+1] = "<span style = \"color:blue\">e</span>";
-          //lines[YY+2][XX+2] = "<span style = \"color:blue\">a</span>";
-
-          lines[YY+2][XX+0] = "~";
-          lines[YY+2][XX+1] = "~";
-          lines[YY+2][XX+2] = "~";
-
-          //lines[YY+2][XX+1] = "<span style = \"color:cyan\">~</span>";
-          //lines[YY+2][XX+3] = "~";
+        lines[YY + 3][XX + 3] = " ";
+      } else {
+        lines[YY + 3][XX + 2] = "_";
+        lines[YY + 3][XX + 3] = "_";
+      }
+      if (hasXYNeighbor) {
+        lines[YY + 3][XX + 4] = "|";
+      } else if (hasXNeighbor){
+        if (hasZNeighbor && !hasZYNeighbor) {
+          lines[YY + 3][XX + 4] = " ";
+        } else {
+          lines[YY + 3][XX + 4] = "_";
         }
-      else {
-        // Render the player
-        lines[YY + 2 - vertical_player_correction][XX + 0 + 2 - horizontal_player_correction] = "<span style = \"color:white\">?</span>";
-        // lines[YY + 2 - vertical_player_correction][XX + 1 + 2 - horizontal_player_correction] = "<span style = \"color:white\">o</span>";
-        // lines[YY + 2 - vertical_player_correction][XX + 2 + 2 - horizontal_player_correction] = "<span style = \"color:white\">u</span>";
+      } else {
+        lines[YY + 3][XX + 4] = "|";
+      }
+    } else if (blocks[z][x][y] == STREET_LIGHT){
 
-        //lines[YY + 2][XX + 0] = "<span style = \"color:#00FF00; background-color:black\">y</span>";
-        //lines[YY + 2][XX + 1] = "<span style = \"color:#00FF00; background-color:black\">o</span>";
-        //lines[YY + 2][XX + 2] = "<span style = \"color:#00FF00; background-color:black\">u</span>";
+      /*depthBuffer[YY + 1][XX + 2] = depth;
+      depthBuffer[YY + 1][XX + 3] = depth;
+      depthBuffer[YY + 1][XX + 4] = depth;
+      depthBuffer[YY + 2][XX + 2] = depth;
+      depthBuffer[YY + 2][XX + 3] = depth;
+      depthBuffer[YY + 2][XX + 4] = depth;
+      depthBuffer[YY + 3][XX + 2] = depth;
+      depthBuffer[YY + 3][XX + 3] = depth;
+      depthBuffer[YY + 3][XX + 4] = depth;*/
 
 
-        // lines[YY + 2][XX + 0] = "<span style = \"color:#C3834C; background-color:black\">d</span>";
-        // lines[YY + 2][XX + 1] = "<span style = \"color:#C3834C; background-color:black\">o</span>";
-        // lines[YY + 2][XX + 2] = "<span style = \"color:#C3834C; background-color:black\">g</span>";
+      lines[YY + 1][XX + 2] = ":";
+      //lines[YY + 1][XX + 3] = "<span style = \"color:yellow\">*</span>";
+      lines[YY + 1][XX + 3] = "*";
+      lines[YY + 1][XX + 4] = ":";
+      lines[YY + 2][XX + 2] = " ";
+      lines[YY + 2][XX + 3] = "|";
+      lines[YY + 2][XX + 4] = " ";
+      lines[YY + 3][XX + 2] = " ";
+      lines[YY + 3][XX + 3] = "|";
+      lines[YY + 3][XX + 4] = " ";
+    } else if (blocks[z][x][y] == WAVE){
+        //lines[YY+2][XX-1] = "~";
+        //lines[YY+2][XX+0] = "<span style = \"color:blue\">s</span>";
+        //lines[YY+2][XX+1] = "<span style = \"color:blue\">e</span>";
+        //lines[YY+2][XX+2] = "<span style = \"color:blue\">a</span>";
 
-        /*
-        for (var u = -2; u < 3; u++) {
-          for (var v = -4; v < 5; v++) {
-            var distance = Math.abs(horizontal_player_correction - v - (3 * (px - Math.floor(px)) - 2 * (py - Math.floor(py)))) / 1.5 +
-                           Math.abs(vertical_player_correction - u - (2 * (pz - Math.floor(pz)) - (py - Math.floor(py))));
-            var symbol = " ";
-            if (distance <= 1.5) {
-              symbol = "+";
-            } else if (distance <= 3.5) {
-              symbol = "-";
-            }
-            if (symbol != " ") {
-              //lines[YY + 2 - vertical_player_correction + u][XX + 2 - horizontal_player_correction + v] = "<span style = \"color:#C3834C; background-color:black\">"+symbol+"</span>";
-             lines[YY + 2 - vertical_player_correction + u][XX + 2 - horizontal_player_correction + v] = symbol;
-            }
+        lines[YY+2][XX+0] = "~";
+        lines[YY+2][XX+1] = "~";
+        lines[YY+2][XX+2] = "~";
+
+        //lines[YY+2][XX+1] = "<span style = \"color:cyan\">~</span>";
+        //lines[YY+2][XX+3] = "~";
+      }
+    else {
+      // Render the player
+      lines[YY + 2 - vertical_player_correction][XX + 0 + 2 - horizontal_player_correction] = "<span style = \"color:white\">?</span>";
+      // lines[YY + 2 - vertical_player_correction][XX + 1 + 2 - horizontal_player_correction] = "<span style = \"color:white\">o</span>";
+      // lines[YY + 2 - vertical_player_correction][XX + 2 + 2 - horizontal_player_correction] = "<span style = \"color:white\">u</span>";
+
+      //lines[YY + 2][XX + 0] = "<span style = \"color:#00FF00; background-color:black\">y</span>";
+      //lines[YY + 2][XX + 1] = "<span style = \"color:#00FF00; background-color:black\">o</span>";
+      //lines[YY + 2][XX + 2] = "<span style = \"color:#00FF00; background-color:black\">u</span>";
+
+
+      // lines[YY + 2][XX + 0] = "<span style = \"color:#C3834C; background-color:black\">d</span>";
+      // lines[YY + 2][XX + 1] = "<span style = \"color:#C3834C; background-color:black\">o</span>";
+      // lines[YY + 2][XX + 2] = "<span style = \"color:#C3834C; background-color:black\">g</span>";
+
+      /*
+      for (var u = -2; u < 3; u++) {
+        for (var v = -4; v < 5; v++) {
+          var distance = Math.abs(horizontal_player_correction - v - (3 * (px - Math.floor(px)) - 2 * (py - Math.floor(py)))) / 1.5 +
+                         Math.abs(vertical_player_correction - u - (2 * (pz - Math.floor(pz)) - (py - Math.floor(py))));
+          var symbol = " ";
+          if (distance <= 1.5) {
+            symbol = "+";
+          } else if (distance <= 3.5) {
+            symbol = "-";
+          }
+          if (symbol != " ") {
+            //lines[YY + 2 - vertical_player_correction + u][XX + 2 - horizontal_player_correction + v] = "<span style = \"color:#C3834C; background-color:black\">"+symbol+"</span>";
+           lines[YY + 2 - vertical_player_correction + u][XX + 2 - horizontal_player_correction + v] = symbol;
           }
         }
-        */
+      }
+      */
 
 /*
-        lines[YY][XX+1] = "*";
-        lines[YY+1][XX-1] = "_";
-        lines[YY+1][XX] = "/";
-        lines[YY+1][XX+1] = "|";
-        lines[YY+1][XX+2] = "\\";
-        lines[YY+1][XX+3] = "_";
+      lines[YY][XX+1] = "*";
+      lines[YY+1][XX-1] = "_";
+      lines[YY+1][XX] = "/";
+      lines[YY+1][XX+1] = "|";
+      lines[YY+1][XX+2] = "\\";
+      lines[YY+1][XX+3] = "_";
 
-        lines[YY+2][XX] = "/";
-        lines[YY+2][XX+1] = "\\";
+      lines[YY+2][XX] = "/";
+      lines[YY+2][XX+1] = "\\";
 
-        lines[YY+3][XX-1] = "_";
-        lines[YY+3][XX] = "|";
-        lines[YY+3][XX+2] = "\\";
-        lines[YY+3][XX+3] = "_";
- */   }
-    }
+      lines[YY+3][XX-1] = "_";
+      lines[YY+3][XX] = "|";
+      lines[YY+3][XX+2] = "\\";
+      lines[YY+3][XX+3] = "_";
+*/   }
   }
 }
 
@@ -563,6 +568,7 @@ function getRectanglesLevelTile(z, x, y) {
 }
 
 function getCubeFrameTile(z, x, y) {
+  var output = EMPTY;
   if (z == 0) {
     output = SOLID_BLOCK;
   } else{
@@ -581,6 +587,18 @@ function getCubeFrameTile(z, x, y) {
       output = SOLID_BLOCK;
     }
   }
+  return output;
+}
+
+
+function getIntroTile(z, x, y) {
+  if (Math.abs(x) >= 5 || Math.abs(y) >= 5 || z < 0) {
+    return INVISIBLE_BLOCK;
+  }
+  if (z == 1 && Math.abs(x) < 5 && Math.abs(y) < 5) {
+    return SOLID_BLOCK;
+  }
+  return EMPTY;
 }
 
 /*
@@ -598,6 +616,8 @@ function getWorldTile(z,x,y) {
     return getRectanglesLevelTile(z, x, y);
   } else if (LEVEL == CUBE_FRAME) {
     return getCubeFrameTile(z, x, y);
+  } else if (LEVEL == INTRO) {
+    return getIntroTile(z, x, y);
   } else {
     assert(false);
   }
@@ -672,7 +692,7 @@ function projectOut(blocks) {
       x = l[i][1];
       y = l[i][2];
       a = getWorldTile(z, x, y);
-      if (a == 1) {
+      if (a == SOLID_BLOCK || a == INVISIBLE_BLOCK) {
         // push in minimum valid direction
         //console.log(pz, px, py);
         //console.log(mz, Mz, mx, Mx, my, My);
