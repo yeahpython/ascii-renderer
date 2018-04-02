@@ -55,7 +55,21 @@ var offsetY = 20;
 // This is the (block) coordinate of the player in world coordinates.
 var playerpos = [HEIGHT -1 /* z */, 0 /* x */, 0 /* y */];
 
-var LEVEL = 0;
+// Available levels
+var WETLANDS = 0;
+var SPINNING_SECTORS = 1;
+var RECTANGLES = 2;
+var CUBE_FRAME = 3;
+
+// Hardcoded level.
+var LEVEL = WETLANDS;
+
+// Enumeration of block types.
+var EMPTY = 0;
+var SOLID_BLOCK = 1;
+var PLAYER = 2;
+var STREET_LIGHT = 3;
+var WAVE = 4;
 
 // Modify buffer sizes and change rendering parameters according to the provided dimensions.
 function handle2DBufferDimensionChange(w, h){
@@ -112,13 +126,6 @@ function setAll(lines, value) {
 function clear(lines) {
   setAll(lines, " ");
 }
-
-
-var EMPTY = 0;
-var SOLID_BLOCK = 1;
-var PLAYER = 2;
-var STREET_LIGHT = 3;
-var WAVE = 4;
 
 function render(blocks, sortedCoordinates) {
   render_x_offset = player_x_rendering_offset;
@@ -352,7 +359,7 @@ function setString() {
   var partialJoin = [];
   skipInitial = 4;
   skipEnd = 5;
-  if (LEVEL == 1) {
+  if (LEVEL == SPINNING_SECTORS) {
     skipInitial = 16;
     skipEnd = 14;
   }
@@ -433,7 +440,7 @@ function getWorldTile(z,x,y) {
   //var t = 0;
   //height =/* - 0.2*(x-offsetX) - 0.2*(y-offsetY) */ + Math.sin(t * 0.005 + (x - offsetX) * 0.04) * 2 + Math.sin( (y - offsetY) * 0.04)*2;
   var output = EMPTY;
-  if (LEVEL == 0) {
+  if (LEVEL == WETLANDS) {
     var height = 0;
 
     if (z < 0) {
@@ -485,7 +492,7 @@ function getWorldTile(z,x,y) {
       }
     }
     return output;
-  } else if (LEVEL == 1) {
+  } else if (LEVEL == SPINNING_SECTORS) {
     if (x*x + y*y + z*z < 64 && x*x + y*y + z*z > 16) {
       date = new Date()
       t = date.getTime()
@@ -523,7 +530,7 @@ function getWorldTile(z,x,y) {
     if (z==0 && y==0 && x==0) {
       output = PLAYER;
     }
-  } else if (LEVEL == 2) {
+  } else if (LEVEL == RECTANGLES) {
     if (z == 0) {
       return SOLID_BLOCK;
     } else if (z == 1) {
@@ -545,6 +552,7 @@ function getWorldTile(z,x,y) {
       return EMPTY;
     }
   } else {
+    console.assert(LEVEL == CUBE_FRAME);
     if (z == 0) {
       output = SOLID_BLOCK;
     } else{
@@ -810,12 +818,13 @@ function update(blocks, sortedCoordinates) {
   }
 
 
-  if (LEVEL == 1) {
+  if (LEVEL == SPINNING_SECTORS) {
     playerpos = [0,0,0];
     offsetZ = z_center;
     offsetX = x_center;
     offsetY = y_center;
   } else {
+
     offsetZ = 6 - playerpos[0];
     offsetY = 30 - playerpos[2];
     offsetX = 35 - playerpos[1];
