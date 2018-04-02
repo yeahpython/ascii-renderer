@@ -113,6 +113,13 @@ function clear(lines) {
   setAll(lines, " ");
 }
 
+
+var EMPTY = 0;
+var SOLID_BLOCK = 1;
+var PLAYER = 2;
+var STREET_LIGHT = 3;
+var WAVE = 4;
+
 function render(blocks, sortedCoordinates) {
   render_x_offset = player_x_rendering_offset;
   render_z_offset = player_z_rendering_offset;
@@ -150,7 +157,7 @@ function render(blocks, sortedCoordinates) {
         throw RangeError("index " + (YY+3) +" out of range.");
       }
 
-      if (blocks[z][x][y] == 1){
+      if (blocks[z][x][y] == SOLID_BLOCK){
         /*depthBuffer[YY][XX] = depth;
         depthBuffer[YY][XX + 1] = depth;
         depthBuffer[YY][XX+2] = depth;
@@ -231,7 +238,7 @@ function render(blocks, sortedCoordinates) {
         } else {
           lines[YY + 3][XX + 4] = "|";
         }
-      } else if (blocks[z][x][y] == 3){
+      } else if (blocks[z][x][y] == STREET_LIGHT){
 
         /*depthBuffer[YY + 1][XX + 2] = depth;
         depthBuffer[YY + 1][XX + 3] = depth;
@@ -254,7 +261,7 @@ function render(blocks, sortedCoordinates) {
         lines[YY + 3][XX + 2] = " ";
         lines[YY + 3][XX + 3] = "|";
         lines[YY + 3][XX + 4] = " ";
-      } else if (blocks[z][x][y] == 4){
+      } else if (blocks[z][x][y] == WAVE){
           //lines[YY+2][XX-1] = "~";
           //lines[YY+2][XX+0] = "<span style = \"color:blue\">s</span>";
           //lines[YY+2][XX+1] = "<span style = \"color:blue\">e</span>";
@@ -268,6 +275,7 @@ function render(blocks, sortedCoordinates) {
           //lines[YY+2][XX+3] = "~";
         }
       else {
+        // Render the player
         lines[YY + 2 - player_z_rendering_offset][XX + 0 + 2 - player_x_rendering_offset] = "<span style = \"color:white\">u</span>";
         // lines[YY + 2 - player_z_rendering_offset][XX + 1 + 2 - player_x_rendering_offset] = "<span style = \"color:white\">o</span>";
         // lines[YY + 2 - player_z_rendering_offset][XX + 2 + 2 - player_x_rendering_offset] = "<span style = \"color:white\">u</span>";
@@ -424,27 +432,27 @@ Modify this function to change the level
 function getWorldTile(z,x,y) {
   //var t = 0;
   //height =/* - 0.2*(x-offsetX) - 0.2*(y-offsetY) */ + Math.sin(t * 0.005 + (x - offsetX) * 0.04) * 2 + Math.sin( (y - offsetY) * 0.04)*2;
-  var output = 0;
+  var output = EMPTY;
   if (LEVEL == 0) {
     var height = 0;
 
     if (z < 0) {
-      return 0;
+      output = EMPTY;
     }
     if (~~(z-height) == 0 ) {
-      output = 1;
+      output = SOLID_BLOCK;
     } else {
       var waterLevel = 3;
       var terrainSurface = ( (  Math.sin(x*0.05 + y*0.1) +  Math.sin(x*0.05 + y * 0.08) + Math.sin(x*0.1) + Math.sin(y *0.1  ))) + waterLevel;
       if (z <= terrainSurface && terrainSurface > waterLevel) {
-        output = 1;
+        output = SOLID_BLOCK;
       } else if (z == waterLevel) {
         // draw water
         if (x % 4 == 0 && y % 4 == 0) {
-          output = 4;
+          output = WAVE;
         }
       } /*else if (z < terrainSurface + 2 * (terrainSurface - waterLevel)) {
-        output = 1;
+        output = SOLID_BLOCK;
       }*/
     }
 
@@ -453,18 +461,18 @@ function getWorldTile(z,x,y) {
         X = ~~(x/100);
         Y = ~~(y/100);
         if (Math.sin(X*X) + Math.cos(Y*Y) > 0) {
-          output = 1;
+          output = SOLID_BLOCK;
         }
 
       }
     }
 
     if (x % WIDTH == 0 && y%DEPTH == 0 && Math.abs(z - height) < 10 ) {
-      output = 3;
+      output = STREET_LIGHT;
     }
 
     if (z > 60 && Math.abs(Math.abs(x) % 20 - 10 ) + Math.abs(Math.abs(y) % 20 - 10) + Math.abs(z % 20 - 10) < (z-60)/20  ) {
-      output = 1;
+      output = SOLID_BLOCK;
     }
 
     if (z > 90) {
@@ -473,20 +481,21 @@ function getWorldTile(z,x,y) {
       var c =  ((z-10) % 20) == 0;
       //if ((a&&(b || c)) || (b&&c)) {
       if (a + b + c > 1) {
-        output = 1;
+        output = SOLID_BLOCK;
       }
     }
+    return output;
   } else if (LEVEL == 1) {
     if (x*x + y*y + z*z < 64 && x*x + y*y + z*z > 16) {
       date = new Date()
       t = date.getTime()
 
       /*if (Math.abs(z - 2 * Math.sin( (x - y) / 10 + t / 500)) < 0.5) {
-        output = 1
+        output = SOLID_BLOCK
       }*/
 
       /*if (Math.abs( (x + y) * Math.cos(t / 500) + (z) * Math.sin(t / 500)) < 1.2) {
-        output = 1
+        output = SOLID_BLOCK
       }*/
 
       height = 0;
@@ -497,47 +506,47 @@ function getWorldTile(z,x,y) {
       }
 
       /*if (dot / l > 0.7) {
-        height += 1;
+        height += SOLID_BLOCK;
       }*/
 
       /*if (dot / l < -0.8) {
-        height -= 1;
+        height -= SOLID_BLOCK;
       }*/
 
       if (z <= height && z >= 0) {
-        output = 1;
+        output = SOLID_BLOCK;
         if (dot / l < 0.4 && dot / l > -0.4) {
-          output = 0;
+          output = EMPTY;
         }
       }
     }
     if (z==0 && y==0 && x==0) {
-      output = 2;
+      output = PLAYER;
     }
   } else if (LEVEL == 2) {
     if (z == 0) {
-      return 1;
+      return SOLID_BLOCK;
     } else if (z == 1) {
       var xxx = Math.abs(x);
       var yyy = Math.abs(y);
       if ((xxx >= yyy && xxx % 5 == 4) || (yyy >= xxx && yyy % 10 == 5) ) {
-        return 1;
+        return SOLID_BLOCK;
       } else {
-        return 0;
+        return EMPTY;
       }
     } else if (z==playerpos[0] && x==playerpos[1] && y==playerpos[2]) {
-      return 2;
+      return PLAYER;
     } else {
-      return 0;
+      return EMPTY;
     }
     if (Math.abs(z) == Math.abs(~~(x/2)) || Math.abs(z) == Math.abs(~~(y/2))) {
-      return 1;
+      return SOLID_BLOCK;
     } else {
-      return 0;
+      return EMPTY;
     }
   } else {
     if (z == 0) {
-      output = 1;
+      output = SOLID_BLOCK;
     } else{
       d = 13
       D = 26
@@ -551,12 +560,12 @@ function getWorldTile(z,x,y) {
       B = Math.abs(z - 6) <= 5;
       C = Math.abs(y) <= 5;
       if (a && b && C || a && B && c || A && b && c) {
-        output = 1;
+        output = SOLID_BLOCK;
       }
     }
   }
   if (z==playerpos[0]-offsetZ && x==playerpos[1]-offsetX && y==playerpos[2]-offsetY) {
-      output = 2;
+      output = PLAYER;
       console.log("player still here");
   }
   return output;
