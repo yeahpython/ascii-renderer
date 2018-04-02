@@ -74,7 +74,7 @@ var RECTANGLES = 2;
 var CUBE_FRAME = 3;
 
 // Hardcoded level.
-var LEVEL = WETLANDS;
+var LEVEL = SPINNING_SECTORS;
 
 // Enumeration of block types.
 var EMPTY = 0;
@@ -84,6 +84,8 @@ var STREET_LIGHT = 3;
 var WAVE = 4;
 
 var force_redraw = true;
+
+var LOOP_ACTIVE = false;
 
 // Modify buffer sizes and change rendering parameters according to the provided dimensions.
 function handle2DBufferDimensionChange(w, h){
@@ -297,7 +299,7 @@ function render(blocks, sortedCoordinates) {
         }
       else {
         // Render the player
-        lines[YY + 2 - vertical_player_correction][XX + 0 + 2 - horizontal_player_correction] = "<span style = \"color:white\">u</span>";
+        lines[YY + 2 - vertical_player_correction][XX + 0 + 2 - horizontal_player_correction] = "<span style = \"color:white\">?</span>";
         // lines[YY + 2 - vertical_player_correction][XX + 1 + 2 - horizontal_player_correction] = "<span style = \"color:white\">o</span>";
         // lines[YY + 2 - vertical_player_correction][XX + 2 + 2 - horizontal_player_correction] = "<span style = \"color:white\">u</span>";
 
@@ -423,8 +425,6 @@ function generateArrayWithEntries(rows, cols, value) {
 function generateLines(rows, cols) {
   return generateArrayWithEntries(rows, cols, " ");
 }
-
-var LOOP_ACTIVE = false;
 
 function generateDepthBuffer(rows, cols) {
   return generateArrayWithEntries(rows, cols, -1);
