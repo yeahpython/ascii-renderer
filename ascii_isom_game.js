@@ -83,6 +83,8 @@ var PLAYER = 2;
 var STREET_LIGHT = 3;
 var WAVE = 4;
 
+var force_redraw = true;
+
 // Modify buffer sizes and change rendering parameters according to the provided dimensions.
 function handle2DBufferDimensionChange(w, h){
   if (VIEWPORT_WIDTH == w && VIEWPORT_HEIGHT == h) {
@@ -381,10 +383,10 @@ function setString() {
     partialJoin.push ('<br>' + lines[i].slice(5 + leftcut, VIEWPORT_WIDTH - 4 - rightcut).join(""));
   }
   displayText.innerHTML += partialJoin.join("");
-  displayText.innerHTML += "<br>" + (keyStates[0] ? "<" : "*") +
-                                    (keyStates[1] ? "^" : "*") +
-                                    (keyStates[2] ? ">" : "*") +
-                                    (keyStates[3] ? "v" : "*") +
+  displayText.innerHTML += "<br>" + (keyStates[1] ? "^" : "w") + "<br>" +
+                                    (keyStates[0] ? "&lt;" : "a") +
+                                    (keyStates[3] ? "v" : "s") +
+                                    (keyStates[2] ? "&gt;" : "d") +
                                     "<br>" +
                                     (keyStates[4] ? "[JETPACK]":"[       ]") +
                                     "<br>WASD to move, J to jetpack";
@@ -884,7 +886,8 @@ function update(blocks, sortedCoordinates) {
   var offsetChanged = offsetZ != oldoffset[0] || offsetX != oldoffset[1] || offsetY != oldoffset[2];
   var horizontal_player_correction_changed = horizontal_player_correction != old_horizontal_player_correction;
   var vertical_player_correction_changed = vertical_player_correction != old_vertical_player_correction;
-  var needRedraw = /*positionChanged ||*/ offsetChanged || vertical_player_correction_changed || horizontal_player_correction_changed || (LEVEL==1) || displayChanged;
+  var needRedraw = /*positionChanged ||*/ offsetChanged || vertical_player_correction_changed || horizontal_player_correction_changed || (LEVEL==SPINNING_SECTORS) || displayChanged || force_redraw;
+  force_redraw = false;
 
 
   if (needRedraw) {
@@ -932,14 +935,29 @@ function setKey(event, state)
 {
   var keyPressed = String.fromCharCode(event.keyCode);
   if (keyPressed == "A") {       // left arrow
-    keyStates[0] = state;
+    if (keyStates[0] != state) {
+      keyStates[0] = state;
+      force_redraw = true;
+    }
   } else if (keyPressed == "W") { // up arrow
-    keyStates[1] = state;
+    if (keyStates[1] != state) {
+      keyStates[1] = state;
+      force_redraw = true;
+    }
   } else if (keyPressed == "D") { // right arrow
-    keyStates[2] = state;
+    if (keyStates[2] != state) {
+      keyStates[2] = state;
+      force_redraw = true;
+    }
   } else if (keyPressed == "S") { // down arrow
-    keyStates[3] = state;
+    if (keyStates[3] != state) {
+      keyStates[3] = state;
+      force_redraw = true;
+    }
   } else if (keyPressed == "J") { //jump
-    keyStates[4] = state;
+    if (keyStates[4] != state) {
+      keyStates[4] = state;
+      force_redraw = true;
+    }
   }
 }
