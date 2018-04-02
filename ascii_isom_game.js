@@ -29,8 +29,13 @@ var RENDERING_BASEPOINT_X, RENDERING_BASEPOINT_Y;
 
 // Fine-grained offset of player from their cube coordinate, used to enable sub-
 // block-sized motion.
-var player_x_rendering_offset = 0; // should be 0, 1  or 2
-var player_z_rendering_offset = 0;
+var horizontal_player_correction = 0; // should be 0, 1  or 2
+var vertical_player_correction = 0;
+
+// Fine-grained offset of camera from their cube coordinate, used to enable sub-
+// block-sized motion.
+var horizontal_camera_correction = 0; // should be 0, 1  or 2
+var vertical_camera_correction = 0;
 
 // Fine-grained offset of rendering from the rendering basepoint, used to enable
 // sub-block-sized motion
@@ -41,6 +46,11 @@ var render_z_offset = 0;
 var px = 0.0;
 var py = 0.0;
 var pz = 10.0;
+
+// Float coordinates of the camera relative to the world coordinates.
+var cx = px;
+var cy = py;
+var cz = pz;
 
 // Velocity of the user.
 var pvx = 0.02;
@@ -54,6 +64,8 @@ var offsetY = 20;
 
 // This is the (block) coordinate of the player in world coordinates.
 var playerpos = [HEIGHT -1 /* z */, 0 /* x */, 0 /* y */];
+// This is the (block) coordinate of the camera in world coordinates.
+var camerapos = [0,0,0]
 
 // Available levels
 var WETLANDS = 0;
@@ -128,8 +140,8 @@ function clear(lines) {
 }
 
 function render(blocks, sortedCoordinates) {
-  render_x_offset = player_x_rendering_offset;
-  render_z_offset = player_z_rendering_offset;
+  render_x_offset = horizontal_camera_correction;
+  render_z_offset = vertical_camera_correction;
   var X = RENDERING_BASEPOINT_X + render_x_offset; // rightward shift of basepoint
   var Y = RENDERING_BASEPOINT_Y + render_z_offset; // downward shift of basepoint
   clear(lines);
@@ -283,9 +295,9 @@ function render(blocks, sortedCoordinates) {
         }
       else {
         // Render the player
-        lines[YY + 2 - player_z_rendering_offset][XX + 0 + 2 - player_x_rendering_offset] = "<span style = \"color:white\">u</span>";
-        // lines[YY + 2 - player_z_rendering_offset][XX + 1 + 2 - player_x_rendering_offset] = "<span style = \"color:white\">o</span>";
-        // lines[YY + 2 - player_z_rendering_offset][XX + 2 + 2 - player_x_rendering_offset] = "<span style = \"color:white\">u</span>";
+        lines[YY + 2 - vertical_player_correction][XX + 0 + 2 - horizontal_player_correction] = "<span style = \"color:white\">u</span>";
+        // lines[YY + 2 - vertical_player_correction][XX + 1 + 2 - horizontal_player_correction] = "<span style = \"color:white\">o</span>";
+        // lines[YY + 2 - vertical_player_correction][XX + 2 + 2 - horizontal_player_correction] = "<span style = \"color:white\">u</span>";
 
         //lines[YY + 2][XX + 0] = "<span style = \"color:#00FF00; background-color:black\">y</span>";
         //lines[YY + 2][XX + 1] = "<span style = \"color:#00FF00; background-color:black\">o</span>";
@@ -299,8 +311,8 @@ function render(blocks, sortedCoordinates) {
         /*
         for (var u = -2; u < 3; u++) {
           for (var v = -4; v < 5; v++) {
-            var distance = Math.abs(player_x_rendering_offset - v - (3 * (px - Math.floor(px)) - 2 * (py - Math.floor(py)))) / 1.5 +
-                           Math.abs(player_z_rendering_offset - u - (2 * (pz - Math.floor(pz)) - (py - Math.floor(py))));
+            var distance = Math.abs(horizontal_player_correction - v - (3 * (px - Math.floor(px)) - 2 * (py - Math.floor(py)))) / 1.5 +
+                           Math.abs(vertical_player_correction - u - (2 * (pz - Math.floor(pz)) - (py - Math.floor(py))));
             var symbol = " ";
             if (distance <= 1.5) {
               symbol = "+";
@@ -308,8 +320,8 @@ function render(blocks, sortedCoordinates) {
               symbol = "-";
             }
             if (symbol != " ") {
-              //lines[YY + 2 - player_z_rendering_offset + u][XX + 2 - player_x_rendering_offset + v] = "<span style = \"color:#C3834C; background-color:black\">"+symbol+"</span>";
-             lines[YY + 2 - player_z_rendering_offset + u][XX + 2 - player_x_rendering_offset + v] = symbol;
+              //lines[YY + 2 - vertical_player_correction + u][XX + 2 - horizontal_player_correction + v] = "<span style = \"color:#C3834C; background-color:black\">"+symbol+"</span>";
+             lines[YY + 2 - vertical_player_correction + u][XX + 2 - horizontal_player_correction + v] = symbol;
             }
           }
         }
@@ -794,13 +806,50 @@ function physics_update() {
   }
 }
 
-function update_discrete_coordinates() {
-  playerpos[0] = Math.floor(pz);
-  playerpos[1] = Math.floor(px);
-  playerpos[2] = Math.floor(py);
+function toTileCoordinate(x, y, z) {
+  return [Math.floor(z), Math.floor(x), Math.floor(y)];
+}
 
-  player_z_rendering_offset = Math.round(2 * (pz - Math.floor(pz)) - (py - Math.floor(py)));
-  player_x_rendering_offset = Math.round(3 * (px - Math.floor(px)) - 2 * (py - Math.floor(py)));
+// Calculate fine 2D vertical correction in render position from 3D float coordinates.
+function verticalCorrection(x, y, z) {
+  return Math.round(2 * (z - Math.floor(z)) - (y - Math.floor(y)));
+}
+
+// Calculate fine 2D horizontal correction in render position from 3D float coordinates.
+function horizontalCorrection(x, y , z) {
+  return Math.round(3 * (x - Math.floor(x)) - 2 * (y - Math.floor(y)));
+}
+
+function update_discrete_coordinates() {
+
+  // Note that camera contraints need to align with fine rendering, which probably(?) means they need to be integers.
+  if (cz - pz > 5.0) {
+    cz = pz + 5.0;
+  } else if (cz - pz < -5.0) {
+    cz = pz - 5.0;
+  }
+  if (cx - px > 3.0) {
+    cx = px + 3.0;
+  } else if (cx - px < -3.0) {
+    cx = px - 3.0;
+  }
+  if (cy - py > 3.0) {
+    cy = py + 3.0;
+  } else if (cy - py < -3.0) {
+    cy = py - 3.0;
+  }
+  // cx = px;
+  // cy = py;
+  // cz = pz;
+
+  playerpos = toTileCoordinate(px, py, pz);
+  camerapos = toTileCoordinate(cx, cy, cz);
+
+  vertical_player_correction = verticalCorrection(px, py, pz);
+  horizontal_player_correction = horizontalCorrection(px, py, pz);
+
+  vertical_camera_correction = verticalCorrection(cx, cy, cz);
+  horizontal_camera_correction = horizontalCorrection(cx, cy, cz);
 }
 
 function update(blocks, sortedCoordinates) {
@@ -808,8 +857,8 @@ function update(blocks, sortedCoordinates) {
 
   var oldpos = playerpos.slice(0);
   var oldoffset = [offsetZ, offsetX, offsetY];
-  var old_player_x_rendering_offset = player_x_rendering_offset;
-  var old_player_z_rendering_offset = player_z_rendering_offset;
+  var old_horizontal_player_correction = horizontal_player_correction;
+  var old_vertical_player_correction = vertical_player_correction;
 
   // Position and velocity update
   if (LEVEL != 1) {
@@ -824,18 +873,18 @@ function update(blocks, sortedCoordinates) {
     offsetX = x_center;
     offsetY = y_center;
   } else {
-
-    offsetZ = 6 - playerpos[0];
-    offsetY = 30 - playerpos[2];
-    offsetX = 35 - playerpos[1];
+    offsetZ = 6 - camerapos[0];
+    offsetY = 30 - camerapos[2];
+    offsetX = 35 - camerapos[1];
   }
 
-  // Detect if redraw is necessary
+  // Detect if redraw is necessary. Checking for camera changes is unnecessary since all camera changes are induced by
+  // player position changes.
   var positionChanged = oldpos[0] != playerpos[0] || oldpos[1] != playerpos[1] || oldpos[2] != playerpos[2];
   var offsetChanged = offsetZ != oldoffset[0] || offsetX != oldoffset[1] || offsetY != oldoffset[2];
-  var player_x_rendering_offset_changed = player_x_rendering_offset != old_player_x_rendering_offset;
-  var player_z_rendering_offset_changed = player_z_rendering_offset != old_player_z_rendering_offset;
-  var needRedraw = /*positionChanged ||*/ offsetChanged || player_z_rendering_offset_changed || player_x_rendering_offset_changed || (LEVEL==1) || displayChanged;
+  var horizontal_player_correction_changed = horizontal_player_correction != old_horizontal_player_correction;
+  var vertical_player_correction_changed = vertical_player_correction != old_vertical_player_correction;
+  var needRedraw = /*positionChanged ||*/ offsetChanged || vertical_player_correction_changed || horizontal_player_correction_changed || (LEVEL==1) || displayChanged;
 
 
   if (needRedraw) {
