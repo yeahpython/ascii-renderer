@@ -77,6 +77,11 @@ var INTRO = 4
 // Hardcoded level.
 var LEVEL = INTRO;
 
+level_messages = {};
+level_messages[INTRO] = ["Welcome to",
+                         "level one"];
+
+
 // Enumeration of block types.
 var EMPTY = 0;
 var SOLID_BLOCK = 1;
@@ -278,17 +283,35 @@ function render(blocks, sortedCoordinates) {
       depthBuffer[YY + 3][XX + 2] = depth;
       depthBuffer[YY + 3][XX + 3] = depth;
       depthBuffer[YY + 3][XX + 4] = depth;*/
+      var distance = z - playerpos[0] - offsetZ + 2 * Math.max(Math.abs(playerpos[1] + offsetX - x), Math.abs(playerpos[2] + offsetY - y));
+      var close = distance < 10;
+      // if (close) {
+      //   force_redraw = true;
+      // }
+      var bright = close;// && (Math.sin(new Date().getTime() * 3.14 / 300 - z / 2) > 0.0);
 
-
-      lines[YY + 1][XX + 2] = ":";
+      lines[YY + 1][XX + 2] = " ";
       //lines[YY + 1][XX + 3] = "<span style = \"color:yellow\">*</span>";
-      lines[YY + 1][XX + 3] = "*";
-      lines[YY + 1][XX + 4] = ":";
+      lines[YY + 1][XX + 3] = bright ? "<span style = \"color:white\">!</span>" : "?";
+      lines[YY + 1][XX + 4] = " ";
+      if (bright && z + 1 < blocks.length && blocks[z + 1][x][y] != STREET_LIGHT) {
+        for (var row = 0; row < level_messages[4].length; row++) {
+          for (var col = 0; col < level_messages[LEVEL][row].length; col++) {
+            try {
+              lines[YY + 1 + row][XX + 5 + col] = level_messages[LEVEL][row][col];
+            } catch (err) {
+              // ignore
+            }
+          }
+        }
+      }
+
+
       lines[YY + 2][XX + 2] = " ";
-      lines[YY + 2][XX + 3] = "|";
+      lines[YY + 2][XX + 3] = bright ? "<span style = \"color:white\">|</span>" : ".";
       lines[YY + 2][XX + 4] = " ";
       lines[YY + 3][XX + 2] = " ";
-      lines[YY + 3][XX + 3] = "|";
+      lines[YY + 3][XX + 3] = bright ? "<span style = \"color:white\">|</span>" : ".";
       lines[YY + 3][XX + 4] = " ";
     } else if (blocks[z][x][y] == WAVE){
         //lines[YY+2][XX-1] = "~";
@@ -305,7 +328,7 @@ function render(blocks, sortedCoordinates) {
       }
     else {
       // Render the player
-      lines[YY + 2 - vertical_player_correction][XX + 0 + 2 - horizontal_player_correction] = "<span style = \"color:white\">?</span>";
+      lines[YY + 2 - vertical_player_correction][XX + 0 + 2 - horizontal_player_correction] = "<span style = \"color:white\">" + (pvx > 0 ? "q" : "p") + "</span>";
       // lines[YY + 2 - vertical_player_correction][XX + 1 + 2 - horizontal_player_correction] = "<span style = \"color:white\">o</span>";
       // lines[YY + 2 - vertical_player_correction][XX + 2 + 2 - horizontal_player_correction] = "<span style = \"color:white\">u</span>";
 
@@ -374,7 +397,7 @@ var keyStates = [false, false, false, false, false];
 
 function setString() {
   var displayText = document.getElementById('active-text');
-  displayText.innerHTML = debug_message + "<br>Controls: WASD to move, J to jetpack";
+  displayText.innerHTML = debug_message;
   //displayText.innerHTML = "";
 
   var partialJoin = [];
@@ -592,13 +615,74 @@ function getCubeFrameTile(z, x, y) {
 
 
 function getIntroTile(z, x, y) {
-  if (Math.abs(x) >= 5 || Math.abs(y) >= 5 || z < 0) {
-    return INVISIBLE_BLOCK;
+  if (x <= 3) { // earliest section of map
+    if (Math.abs(x) >= 4 || Math.abs(y) >= 4 || z < 0) {
+      return INVISIBLE_BLOCK;
+    }
+
+    if (z >= 3 && z <= 9 && x == 0 && y == 0) {
+      return STREET_LIGHT;
+    }
+
+    if ( (z >= -10 && z <= 2) && Math.abs(x) < 10 && Math.abs(y) < 10) {
+      return SOLID_BLOCK;
+    }
+    return EMPTY;
+  } else if (x <= 20) { // first bridge
+    if (Math.abs(y) > 1) {
+      return INVISIBLE_BLOCK;
+    }
+    if (z == 2) {
+      return SOLID_BLOCK;
+    }
+    if (z < 2) {
+      return INVISIBLE_BLOCK;
+    }
+    return EMPTY;
   }
-  if (z == 1 && Math.abs(x) < 5 && Math.abs(y) < 5) {
-    return SOLID_BLOCK;
+  if (x <= 21) { // vertical drop
+    if (Math.abs(y) > 1) {
+      return INVISIBLE_BLOCK;
+    }
+    if (z <= 2 && z >= -3) {
+      return SOLID_BLOCK;
+    }
+    return EMPTY;
   }
-  return EMPTY;
+  if (x <= 35) { // second bridge
+    if (Math.abs(y) > 1) {
+      return INVISIBLE_BLOCK;
+    }
+    if (z == -3) {
+      return SOLID_BLOCK;
+    }
+    return EMPTY;
+  }
+  if (x <= 40) { //
+    if (y < -1) {
+      return INVISIBLE_BLOCK;
+    }
+    if (y > 20) {
+      return INVISIBLE_BLOCK;
+    }
+    if (z == -3) {
+      return SOLID_BLOCK;
+    }
+    return EMPTY;
+  }
+  if (z < 60) {
+    if (y < 15) {
+      return INVISIBLE_BLOCK;
+    }
+    if (y > 20) {
+      return INVISIBLE_BLOCK;
+    }
+    if (z == -3) {
+      return SOLID_BLOCK;
+    }
+    return EMPTY;
+  }
+  return INVISIBLE_BLOCK;
 }
 
 /*
@@ -667,7 +751,7 @@ function projectOut(blocks) {
   width = 0.3;
 
 
-  for (var i = 0; i < 6; i++) {
+  for (var projection_iteration = 0; projection_iteration < 6; projection_iteration++) {
     var pushed = false;
 
     var mz = Math.floor(pz - width);
@@ -855,8 +939,8 @@ function horizontalCorrection(x, y , z) {
 function update_discrete_coordinates() {
 
   // Note that camera contraints need to align with fine rendering, which probably(?) means they need to be integers.
-  if (cz - pz > 5.0) {
-    cz = pz + 5.0;
+  if (cz - pz > 3.0) {
+    cz = pz + 3.0;
   } else if (cz - pz < -5.0) {
     cz = pz - 5.0;
   }
