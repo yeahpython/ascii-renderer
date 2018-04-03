@@ -283,8 +283,8 @@ function render(blocks, sortedCoordinates) {
       depthBuffer[YY + 3][XX + 2] = depth;
       depthBuffer[YY + 3][XX + 3] = depth;
       depthBuffer[YY + 3][XX + 4] = depth;*/
-      var distance = z - playerpos[0] - offsetZ + 2 * Math.max(Math.abs(playerpos[1] + offsetX - x), Math.abs(playerpos[2] + offsetY - y));
-      var close = distance < 10;
+      var distance = Math.abs(z - playerpos[0] - offsetZ) + 2 * Math.max(Math.abs(playerpos[1] + offsetX - x), Math.abs(playerpos[2] + offsetY - y));
+      var close = distance < 20;
       // if (close) {
       //   force_redraw = true;
       // }
@@ -294,7 +294,7 @@ function render(blocks, sortedCoordinates) {
       //lines[YY + 1][XX + 3] = "<span style = \"color:yellow\">*</span>";
       lines[YY + 1][XX + 3] = bright ? "<span style = \"color:white\">!</span>" : "?";
       lines[YY + 1][XX + 4] = " ";
-      if (bright && z + 1 < blocks.length && blocks[z + 1][x][y] != STREET_LIGHT) {
+      if (bright && z + 1 < blocks.length && blocks[z + 1][x][y] != STREET_LIGHT && blocks[z + 1][x][y] != PLAYER) {
         for (var row = 0; row < level_messages[4].length; row++) {
           for (var col = 0; col < level_messages[LEVEL][row].length; col++) {
             try {
@@ -658,7 +658,7 @@ function getIntroTile(z, x, y) {
     }
     return EMPTY;
   }
-  if (x <= 40) { //
+  if (x <= 40) { // perpendicular
     if (y < -1) {
       return INVISIBLE_BLOCK;
     }
@@ -670,14 +670,45 @@ function getIntroTile(z, x, y) {
     }
     return EMPTY;
   }
-  if (z < 60) {
-    if (y < 15) {
+  if (y < 28) {
+    if (x < 80) {
+      if (y <= 20) {
+        if (y < 17) {
+          return INVISIBLE_BLOCK;
+        }
+        if (z == -3) {
+          return SOLID_BLOCK;
+        }
+        if (x > 75 && z >= -12 && z <= -3 && y == 20) {
+          return SOLID_BLOCK;
+        }
+        if (z < -3) {
+          return INVISIBLE_BLOCK;
+        }
+        return EMPTY;
+      }
+
+      if (x <= 75) {
+        return INVISIBLE_BLOCK;
+      }
+      if (x > 75 && z == -12) {
+        return SOLID_BLOCK;
+      }
+      return EMPTY;
+    }
+    return INVISIBLE_BLOCK;
+  }
+  if (y < 34) {
+    if (x == 78 && y == 31 && z>= -11 && z <= -3) {
+      return STREET_LIGHT;
+    }
+    if (x > 81) {
       return INVISIBLE_BLOCK;
     }
-    if (y > 20) {
+    if (x < 75) {
       return INVISIBLE_BLOCK;
     }
-    if (z == -3) {
+    if (z >= -15 && z <= -12) {
       return SOLID_BLOCK;
     }
     return EMPTY;
@@ -858,8 +889,8 @@ function auto_resize() {
 }
 
 function physics_update() {
-  pvz += -0.01;
-  var a = 0.01;
+  pvz += -0.1;
+  var a = 0.1;
   if (keyStates[0]) { // A
     pvx += a;
   }
@@ -882,25 +913,27 @@ function physics_update() {
     pvz *= 0.9;
   }
 
-  if (pvz >= 1.0) {
-    pvz = 1.0;
+  var max_speed = 4.5;
+
+  if (pvz >= max_speed) {
+    pvz = max_speed;
   }
-  if (pvz <= -1.0) {
-    pvz = -1.0;
+  if (pvz <= -max_speed) {
+    pvz = -max_speed;
   }
 
-  if (pvx >= 1.0) {
-    pvx = 1.0;
+  if (pvx >= max_speed) {
+    pvx = max_speed;
   }
-  if (pvx <= -1.0) {
-    pvx = -1.0;
+  if (pvx <= -max_speed) {
+    pvx = -max_speed;
   }
 
-  if (pvy >= 1.0) {
-    pvy = 1.0;
+  if (pvy >= max_speed) {
+    pvy = max_speed;
   }
-  if (pvy <= -1.0) {
-    pvy = -1.0;
+  if (pvy <= -max_speed) {
+    pvy = -max_speed;
   }
 
 
@@ -910,9 +943,9 @@ function physics_update() {
   mini_vy = pvy / 10;
   mini_vz = pvz / 10;
   for (var _ = 0; _ < 10; ++_) {
-    px += pvx;
-    py += pvy;
-    pz += pvz;
+    px += mini_vx;
+    py += mini_vy;
+    pz += mini_vz;
     /*if (pz < 2.5) {
       pz = 2.5;
     }*/
