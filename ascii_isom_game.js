@@ -78,8 +78,14 @@ var INTRO = 4
 var LEVEL = INTRO;
 
 level_messages = {};
-level_messages[INTRO] = ["Welcome to",
-                         "level one"];
+level_messages[INTRO] = function(z, x, y){
+  if (x < 40) {
+    return ["Welcome to",
+     "level one"];
+  } else {
+    return ["Congratulations,", "you made it"];
+  }
+};
 
 
 // Enumeration of block types.
@@ -283,8 +289,20 @@ function render(blocks, sortedCoordinates) {
       depthBuffer[YY + 3][XX + 2] = depth;
       depthBuffer[YY + 3][XX + 3] = depth;
       depthBuffer[YY + 3][XX + 4] = depth;*/
-      var distance = Math.abs(z - playerpos[0] - offsetZ) + 2 * Math.max(Math.abs(playerpos[1] + offsetX - x), Math.abs(playerpos[2] + offsetY - y));
-      var close = distance < 20;
+      var distance = /*Math.abs(z - playerpos[0] - offsetZ) + */Math.max(Math.abs(playerpos[1] + offsetX - x), Math.abs(playerpos[2] + offsetY - y));
+
+
+      var height = 0;
+      for (var test_height_offset = 0; test_height_offset < 10; test_height_offset++) {
+        if (getWorldTile(z - offsetZ - test_height_offset, x - offsetX, y - offsetY) == STREET_LIGHT) {
+          height = test_height_offset;
+        } else {
+          break;
+        }
+      }
+
+
+      var close = distance + height < 10;
       // if (close) {
       //   force_redraw = true;
       // }
@@ -295,10 +313,11 @@ function render(blocks, sortedCoordinates) {
       lines[YY + 1][XX + 3] = bright ? "<span style = \"color:white\">!</span>" : "?";
       lines[YY + 1][XX + 4] = " ";
       if (bright && z + 1 < blocks.length && blocks[z + 1][x][y] != STREET_LIGHT && blocks[z + 1][x][y] != PLAYER) {
-        for (var row = 0; row < level_messages[4].length; row++) {
-          for (var col = 0; col < level_messages[LEVEL][row].length; col++) {
+        var msg = level_messages[LEVEL](z - offsetZ, x - offsetX, y - offsetY);
+        for (var row = 0; row < msg.length; row++) {
+          for (var col = 0; col < msg[row].length; col++) {
             try {
-              lines[YY + 1 + row][XX + 5 + col] = level_messages[LEVEL][row][col];
+              lines[YY + 1 + row][XX + 5 + col] = msg[row][col];
             } catch (err) {
               // ignore
             }
