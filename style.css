@@ -1,0 +1,19 @@
+body {
+	height:calc(100vh - 17px);
+	width:calc(100vw - 17px);
+	background-color: #042a33;
+}
+
+#active-text {
+    height:100%;
+    margin: 0px;
+    overflow:hidden;
+}
+
+#container {
+	height:100%;
+	display-style:inline-block;
+	margin-left:auto;
+	margin-right:auto;
+	color: #15ffcd;
+}

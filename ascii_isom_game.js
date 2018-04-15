@@ -1,9 +1,3 @@
-// Debug message to show above the main scene.
-var debug_message = "";
-
-// 3D buffer storing block data
-var blocks;
-
 // The dimensions of the three-dimensional buffer used to store a slice
 // of the world map.
 var HEIGHT = 20;
@@ -14,6 +8,31 @@ var DEPTH = 90;
 var z_center = HEIGHT / 2;
 var x_center = WIDTH / 2;
 var y_center = DEPTH / 2;
+
+// Available levels
+var WETLANDS = 0;
+var SPINNING_SECTORS = 1;
+var RECTANGLES = 2;
+var CUBE_FRAME = 3;
+var INTRO = 4
+
+// Hardcoded level.
+var LEVEL = INTRO;
+
+// Enumeration of block types.
+var EMPTY = 0;
+var SOLID_BLOCK = 1;
+var PLAYER = 2;
+var STREET_LIGHT = 3;
+var WAVE = 4;
+var INVISIBLE_BLOCK = 5;
+
+// The things that follow aren't constants. Why are they in the global scope?
+// Debug message to show above the main scene.
+var debug_message = "";
+
+// 3D buffer storing block data
+var blocks;
 
 // The two-dimensional offset of the three-dimensional center from the
 // two-dimensional rendered position of the [0,0,0].
@@ -67,38 +86,18 @@ var playerpos = [HEIGHT -1 /* z */, 0 /* x */, 0 /* y */];
 // This is the (block) coordinate of the camera in world coordinates.
 var camerapos = [0,0,0]
 
-// Available levels
-var WETLANDS = 0;
-var SPINNING_SECTORS = 1;
-var RECTANGLES = 2;
-var CUBE_FRAME = 3;
-var INTRO = 4
+var force_redraw = true;
 
-// Hardcoded level.
-var LEVEL = INTRO;
+var LOOP_ACTIVE = false;
 
 level_messages = {};
 level_messages[INTRO] = function(z, x, y){
   if (x < 40) {
-    return ["Welcome to",
-     "level one"];
+    return ["Welcome!", "WASD to move,", "J to jetpack."];
   } else {
-    return ["Congratulations,", "you made it"];
+    return ["Congratulations,", "you made it!"];
   }
 };
-
-
-// Enumeration of block types.
-var EMPTY = 0;
-var SOLID_BLOCK = 1;
-var PLAYER = 2;
-var STREET_LIGHT = 3;
-var WAVE = 4;
-var INVISIBLE_BLOCK = 5;
-
-var force_redraw = true;
-
-var LOOP_ACTIVE = false;
 
 // Modify buffer sizes and change rendering parameters according to the provided dimensions.
 function handle2DBufferDimensionChange(w, h){
@@ -379,22 +378,23 @@ function render(blocks, sortedCoordinates) {
       }
       */
 
-/*
-      lines[YY][XX+1] = "*";
-      lines[YY+1][XX-1] = "_";
-      lines[YY+1][XX] = "/";
-      lines[YY+1][XX+1] = "|";
-      lines[YY+1][XX+2] = "\\";
-      lines[YY+1][XX+3] = "_";
 
-      lines[YY+2][XX] = "/";
-      lines[YY+2][XX+1] = "\\";
+      // lines[YY][XX+1] = "*";
+      // lines[YY+1][XX-1] = "_";
+      // lines[YY+1][XX] = "/";
+      // lines[YY+1][XX+1] = "|";
+      // lines[YY+1][XX+2] = "\\";
+      // lines[YY+1][XX+3] = "_";
 
-      lines[YY+3][XX-1] = "_";
-      lines[YY+3][XX] = "|";
-      lines[YY+3][XX+2] = "\\";
-      lines[YY+3][XX+3] = "_";
-*/   }
+      // lines[YY+2][XX] = "/";
+      // lines[YY+2][XX+1] = "\\";
+
+      // lines[YY+3][XX-1] = "_";
+      // lines[YY+3][XX] = "|";
+      // lines[YY+3][XX+2] = "\\";
+      // lines[YY+3][XX+3] = "_";
+
+    }
   }
 }
 
@@ -416,10 +416,11 @@ var keyStates = [false, false, false, false, false];
 
 function setString() {
   var displayText = document.getElementById('active-text');
-  displayText.innerHTML = debug_message;
+  // displayText.innerHTML = debug_message;
   //displayText.innerHTML = "";
 
   var partialJoin = [];
+  // partialJoin.push(debug_message);
   skipInitial = 4;
   skipEnd = 5;
   if (LEVEL == SPINNING_SECTORS) {
@@ -429,16 +430,16 @@ function setString() {
   var leftcut = 0;
   var rightcut = 0;
   for (var i = skipInitial; i < lines.length-skipEnd; i++) {
-    partialJoin.push ('<br>' + lines[i].slice(5 + leftcut, VIEWPORT_WIDTH - 4 - rightcut).join(""));
+    partialJoin.push (lines[i].slice(5 + leftcut, VIEWPORT_WIDTH - 4 - rightcut).join(""));
   }
-  displayText.innerHTML += partialJoin.join("");
-  displayText.innerHTML += "<br>" + (keyStates[1] ? "^" : "w") + "<br>" +
-                                    (keyStates[0] ? "&lt;" : "a") +
-                                    (keyStates[3] ? "v" : "s") +
-                                    (keyStates[2] ? "&gt;" : "d") +
-                                    "<br>" +
-                                    (keyStates[4] ? "[JETPACK]":"[       ]") +
-                                    "<br>WASD to move, J to jetpack";
+  displayText.innerHTML = partialJoin.join("<br>");
+  // displayText.innerHTML += "<br>" + (keyStates[1] ? "^" : "w") + "<br>" +
+  //                                   (keyStates[0] ? "&lt;" : "a") +
+  //                                   (keyStates[3] ? "v" : "s") +
+  //                                   (keyStates[2] ? "&gt;" : "d") +
+  //                                   "<br>" +
+  //                                   (keyStates[4] ? "[JETPACK]":"[       ]") +
+  //                                   "<br>WASD to move, J to jetpack";
 }
 
 function generateBlockArray(height, width, depth) {
@@ -718,7 +719,7 @@ function getIntroTile(z, x, y) {
     return INVISIBLE_BLOCK;
   }
   if (y < 34) {
-    if (x == 78 && y == 31 && z>= -11 && z <= -3) {
+    if (x == 78 && y == 31 && z>= -11 && z <= -5) {
       return STREET_LIGHT;
     }
     if (x > 81) {
@@ -897,9 +898,9 @@ function projectOut(blocks) {
 function auto_resize() {
   var displayText = document.getElementById('active-text');
   w = Math.round(displayText.offsetWidth / 8) + 14;
-  h = 50;
+  h = Math.round(displayText.offsetWidth / 17) + 14;
   var displayChanged = false;
-  if (VIEWPORT_WIDTH !== w) {
+  if (VIEWPORT_WIDTH !== w || VIEWPORT_HEIGHT !== h) {
     console.log("Display width was changed from " + VIEWPORT_WIDTH + " to " + w);
     displayChanged = true;
   }
