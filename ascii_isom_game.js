@@ -229,17 +229,29 @@ function render(blocks, sortedCoordinates) {
   clear(lines);
   /*setAll(depthBuffer, -1);*/
 
-  var did_draw_player = false;
+  // Extra coordinates to be injected into the loop. Should be sorted in the
+  // same way as sortedCoordinates.
+  var extra_coordinates = [playerpos.slice(0)];
 
-  for (var i = 0; i < sortedCoordinates.length; i++) {
+  var block_index = 0;
+  var extra_index = 0;
+  while (block_index < sortedCoordinates.length || extra_index < extra_coordinates.length) {
 
-    var c = sortedCoordinates[i];
-
-    if (!did_draw_player && coordinateComparison(playerpos, c) < 0) {
-    	// THIS IS A BIG FAT HACK. THE LONG TERM SOLUTION SHOULD BE TO HAVE SOMETHING MORE GENERIC FOR ITERATING THROUGH MULTIPLE SORTED LISTS.
-    	c = playerpos;
-    	i--;
-    	did_draw_player = true;
+  	// This logic basically mixes the two arrays together.
+  	if (block_index >= sortedCoordinates.length) {
+  		var c = extra_coordinates[extra_index];
+  		extra_index++;
+  	} else if (extra_index >= extra_coordinates.length) {
+  		var c = sortedCoordinates[block_index];
+  		block_index++;
+  	} else {
+  		if (coordinateComparison(extra_coordinates[extra_index], sortedCoordinates[block_index]) < 0) {
+  			var c = extra_coordinates[extra_index];
+  			extra_index++;
+  		} else {
+  			var c = sortedCoordinates[block_index];
+  			block_index++;
+  		}
   	}
 
     var z = c[0];
