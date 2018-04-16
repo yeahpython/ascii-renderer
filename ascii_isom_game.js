@@ -27,7 +27,13 @@ var STREET_LIGHT = 3;
 var WAVE = 4;
 var INVISIBLE_BLOCK = 5;
 
-// The things that follow aren't constants. Why are they in the global scope?
+///////////////////////////////////////////////////
+//                                               //
+// The things that follow aren't constants.      //
+// They should be moved out of the global scope. //
+//                                               //
+///////////////////////////////////////////////////
+
 // Debug message to show above the main scene.
 var debug_message = "";
 
@@ -90,6 +96,8 @@ var force_redraw = true;
 
 var LOOP_ACTIVE = false;
 
+var sortedCoordinates;
+
 level_messages = {};
 level_messages[INTRO] = function(z, x, y){
   if (x < 40) {
@@ -112,11 +120,69 @@ function handle2DBufferDimensionChange(w, h){
   RENDERING_BASEPOINT_X = ~~(VIEWPORT_WIDTH / 2 - render_x);
   RENDERING_BASEPOINT_Y = ~~(VIEWPORT_HEIGHT / 2 - render_y);
 
-  sortedCoordinates = getSortedCoordinates(blocks);
+  if (LEVEL != INTRO) {
+  	console.log("You're going to have a bad time...");
+  }
+  sortedCoordinates = getSortedCoordinatesFromConnectedComponent(2, 0, 0);
+  // sortedCoordinates = getSortedCoordinates(blocks);
   resizeBuffers();
 };
 
 // handle2DBufferDimensionChange(139, 49);
+
+function keyForCoord(z, x, y) {
+	return z.toString() + " " + x.toString() + " " + y.toString();
+}
+
+function tileIsSolid(tile) {
+  return tile != EMPTY && tile != INVISIBLE_BLOCK;
+}
+
+function coordinateComparison(a, b) {
+	var x_diff = a[1] - b[1];
+	if (x_diff) {
+		return x_diff;
+	}
+	var y_diff = a[2] - b[2];
+	if (y_diff) {
+		return y_diff;
+	}
+	return a[0] - b[0];
+}
+
+function getSortedCoordinatesFromConnectedComponent(z, x, y) {
+  var found_coordinate = {};
+  var coordinates = [];
+  coordinates.push([z, x, y]);
+  found_coordinate[keyForCoord(z,x,y)] = true;
+  for (var queue_index = 0; queue_index < coordinates.length; queue_index++) {
+  	if (queue_index > 10000) {
+  	  console.log("Infinite loop? Breaking");
+  	  break;
+  	}
+  	var coord = coordinates[queue_index];
+  	for (var dz = -1; dz <= 1; dz++) {
+  	for (var dx = -1; dx <= 1; dx++) {
+  	for (var dy = -1; dy <= 1; dy++) {
+  	  // neighboring coordinate
+  	  var nz = coord[0] + dz;
+  	  var nx = coord[1] + dx;
+  	  var ny = coord[2] + dy;
+  	  var tile = getWorldTile(nz, nx, ny);
+  	  if (tileIsSolid(tile)) {
+  	  	var coord_string = keyForCoord(nz, nx, ny);
+  	  	if (found_coordinate[coord_string] !== true) {
+  	  		coordinates.push([nz, nx, ny]);
+  	  		found_coordinate[coord_string] = true;
+  	  	}
+  	  }
+  	}
+  	}
+  	}
+  }
+  console.log("Sorted coordinates have length " + coordinates.length);
+  return coordinates.sort(coordinateComparison);
+}
 
 // Returns a list of 3D coordinates corresponding to the blocks that will be rendered completely
 // into the 2D buffer, sorted so that blocks always appear earlier than any blocks that cover them.
@@ -162,41 +228,59 @@ function render(blocks, sortedCoordinates) {
   var Y = RENDERING_BASEPOINT_Y + render_z_offset; // downward shift of basepoint
   clear(lines);
   /*setAll(depthBuffer, -1);*/
+
+  var did_draw_player = false;
+
   for (var i = 0; i < sortedCoordinates.length; i++) {
+
     var c = sortedCoordinates[i];
+
+    if (!did_draw_player && coordinateComparison(playerpos, c) < 0) {
+    	// THIS IS A BIG FAT HACK. THE LONG TERM SOLUTION SHOULD BE TO HAVE SOMETHING MORE GENERIC FOR ITERATING THROUGH MULTIPLE SORTED LISTS.
+    	c = playerpos;
+    	i--;
+    	did_draw_player = true;
+  	}
+
     var z = c[0];
     var x = c[1];
     var y = c[2];
     var depth = x + y + z;
 
-    if (blocks[z][x][y] == EMPTY || blocks[z][x][y] == INVISIBLE_BLOCK) {
-      continue;
+    if (!tileIsSolid(getWorldTile(z, x, y))) {
+    	continue;
     }
 
-    var hasXNeighbor = (x > 0 && blocks[z][x-1][y] == SOLID_BLOCK);
-    var hasYNeighbor = (y > 0 && blocks[z][x][y-1] == SOLID_BLOCK);
-    var hasZNeighbor = (z > 0 && blocks[z-1][x][y] == SOLID_BLOCK);
-    var hasXZNeighbor = (x > 0)  && (z + 1 < HEIGHT) && (blocks[z+1][x-1][y] == SOLID_BLOCK);
-    var hasXYNeighbor = (x > 0)  && (y + 1 < DEPTH) && (blocks[z][x-1][y+1] == SOLID_BLOCK);
-    var hasYXNeighbor = (y > 0)  && (x + 1 < WIDTH) && (blocks[z][x+1][y-1] == SOLID_BLOCK);
-    var hasYZNeighbor = (y > 0)  && (z + 1 < HEIGHT) && (blocks[z+1][x][y-1] == SOLID_BLOCK);
-    var hasZXNeighbor = (z > 0)  && (x + 1 < WIDTH) && (blocks[z-1][x+1][y] == SOLID_BLOCK);
-    var hasZYNeighbor = (z > 0)  && (y + 1 < DEPTH) && (blocks[z-1][x][y+1] == SOLID_BLOCK);
+    var hasXNeighbor = getWorldTile(z, x-1, y) == SOLID_BLOCK;
+    var hasYNeighbor = getWorldTile(z, x, y-1) == SOLID_BLOCK;
+    var hasZNeighbor = getWorldTile(z-1, x, y) == SOLID_BLOCK;
+    var hasXZNeighbor = getWorldTile(z+1, x-1, y) == SOLID_BLOCK;
+    var hasXYNeighbor = getWorldTile(z, x-1, y+1) == SOLID_BLOCK;
+    var hasYXNeighbor = getWorldTile(z, x+1, y-1) == SOLID_BLOCK;
+    var hasYZNeighbor = getWorldTile(z+1, x, y-1) == SOLID_BLOCK;
+    var hasZXNeighbor = getWorldTile(z-1, x+1, y) == SOLID_BLOCK;
+    var hasZYNeighbor = getWorldTile(z-1, x, y+1) == SOLID_BLOCK;
 
-    var hasYZXNeighbor = (y > 0) && (x > 0) && (z + 1 < HEIGHT) && (blocks[z+1][x-1][y-1] == SOLID_BLOCK);
+    var hasYZXNeighbor = getWorldTile(z+1, x-1, y-1) == SOLID_BLOCK;
 
-    var hasYXBehindNeighbor = (y > 0) && (x > 0) && (blocks[z][x-1][y-1] == SOLID_BLOCK);
+    var hasYXBehindNeighbor = getWorldTile(z, x-1, y-1) == SOLID_BLOCK;
 
     //var hasXPlusYPlusNeighbor = (x+1 < WIDTH) && (y+1 < DEPTH) $$ ( blocks[z][x+1][y+1] == 1);
 
-    var YY = Y -2*z      +  y;
-    var XX = X      -3*x + 2*y;
+    // World coordinates -> "block" coordinates -> Screen coordinates
+    var YY = Y -2*(z + offsetZ)                  +   (y + offsetY);
+    var XX = X                  -3*(x + offsetX) + 2*(y + offsetY);
 
-    if (YY + 3 > lines.length) {
-      throw RangeError("index " + (YY+3) +" out of range.");
+
+    // if (YY + 3 > lines.length) {
+    //   throw RangeError("index " + (YY+3) +" out of range.");
+    // }
+
+    if (YY < 0 || YY + 3 >= VIEWPORT_HEIGHT || XX <= 0 || XX + 4 > VIEWPORT_WIDTH) {
+      continue;
     }
-
-    if (blocks[z][x][y] == SOLID_BLOCK){
+    var tile = getWorldTile(z, x, y);
+    if (tile == SOLID_BLOCK){
       /*depthBuffer[YY][XX] = depth;
       depthBuffer[YY][XX + 1] = depth;
       depthBuffer[YY][XX+2] = depth;
@@ -256,7 +340,7 @@ function render(blocks, sortedCoordinates) {
         lines[YY + 2][XX + 4] = " ";
       } else{
         lines[YY + 2][XX + 4] = "|";
-    }
+      }
       lines[YY + 3][XX]     = (hasZNeighbor && !hasZXNeighbor) ? " " : "\\"; //should be " " and "\\"
       lines[YY + 3][XX + 1] = "|";
       if (hasZNeighbor && !hasZYNeighbor) {
@@ -277,7 +361,7 @@ function render(blocks, sortedCoordinates) {
       } else {
         lines[YY + 3][XX + 4] = "|";
       }
-    } else if (blocks[z][x][y] == STREET_LIGHT){
+    } else if (tile == STREET_LIGHT){
 
       /*depthBuffer[YY + 1][XX + 2] = depth;
       depthBuffer[YY + 1][XX + 3] = depth;
@@ -288,12 +372,12 @@ function render(blocks, sortedCoordinates) {
       depthBuffer[YY + 3][XX + 2] = depth;
       depthBuffer[YY + 3][XX + 3] = depth;
       depthBuffer[YY + 3][XX + 4] = depth;*/
-      var distance = /*Math.abs(z - playerpos[0] - offsetZ) + */Math.max(Math.abs(playerpos[1] + offsetX - x), Math.abs(playerpos[2] + offsetY - y));
+      var distance = /*Math.abs(z - playerpos[0] - offsetZ) + */Math.max(Math.abs(playerpos[1] - x), Math.abs(playerpos[2] - y));
 
 
       var height = 0;
       for (var test_height_offset = 0; test_height_offset < 10; test_height_offset++) {
-        if (getWorldTile(z - offsetZ - test_height_offset, x - offsetX, y - offsetY) == STREET_LIGHT) {
+        if (getWorldTile(z - test_height_offset, x, y) == STREET_LIGHT) {
           height = test_height_offset;
         } else {
           break;
@@ -311,8 +395,8 @@ function render(blocks, sortedCoordinates) {
       //lines[YY + 1][XX + 3] = "<span style = \"color:yellow\">*</span>";
       lines[YY + 1][XX + 3] = bright ? "<span style = \"color:white\">!</span>" : "?";
       lines[YY + 1][XX + 4] = " ";
-      if (bright && z + 1 < blocks.length && blocks[z + 1][x][y] != STREET_LIGHT && blocks[z + 1][x][y] != PLAYER) {
-        var msg = level_messages[LEVEL](z - offsetZ, x - offsetX, y - offsetY);
+      if (bright && getWorldTile(z + 1, x, y) != STREET_LIGHT && getWorldTile(z + 1, x, y) != PLAYER) {
+        var msg = level_messages[LEVEL](z, x, y );
         for (var row = 0; row < msg.length; row++) {
           for (var col = 0; col < msg[row].length; col++) {
             try {
@@ -331,7 +415,7 @@ function render(blocks, sortedCoordinates) {
       lines[YY + 3][XX + 2] = " ";
       lines[YY + 3][XX + 3] = bright ? "<span style = \"color:white\">|</span>" : ".";
       lines[YY + 3][XX + 4] = " ";
-    } else if (blocks[z][x][y] == WAVE){
+    } else if (tile == WAVE){
         //lines[YY+2][XX-1] = "~";
         //lines[YY+2][XX+0] = "<span style = \"color:blue\">s</span>";
         //lines[YY+2][XX+1] = "<span style = \"color:blue\">e</span>";
@@ -740,6 +824,9 @@ function getIntroTile(z, x, y) {
 Modify this function to change the level
 */
 function getWorldTile(z,x,y) {
+  if (z === playerpos[0] && x === playerpos[1] && y === playerpos[2]) {
+  	return PLAYER;
+  }
   //var t = 0;
   //height =/* - 0.2*(x-offsetX) - 0.2*(y-offsetY) */ + Math.sin(t * 0.005 + (x - offsetX) * 0.04) * 2 + Math.sin( (y - offsetY) * 0.04)*2;
   var output = EMPTY;
@@ -1058,7 +1145,7 @@ function update(blocks, sortedCoordinates) {
 
 
   if (needRedraw) {
-    setWaves(blocks, sortedCoordinates);
+    // setWaves(blocks, sortedCoordinates);
 
     if (1 || offsetChanged) {
       // try {
