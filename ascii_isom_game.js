@@ -134,7 +134,7 @@ function keyForCoord(z, x, y) {
 	return z.toString() + " " + x.toString() + " " + y.toString();
 }
 
-function tileIsSolid(tile) {
+function tileIsVisible(tile) {
   return tile != EMPTY && tile != INVISIBLE_BLOCK;
 }
 
@@ -169,7 +169,7 @@ function getSortedCoordinatesFromConnectedComponent(z, x, y) {
   	  var nx = coord[1] + dx;
   	  var ny = coord[2] + dy;
   	  var tile = getWorldTile(nz, nx, ny);
-  	  if (tileIsSolid(tile)) {
+  	  if (tileIsVisible(tile)) {
   	  	var coord_string = keyForCoord(nz, nx, ny);
   	  	if (found_coordinate[coord_string] !== true) {
   	  		coordinates.push([nz, nx, ny]);
@@ -247,7 +247,7 @@ function render(blocks, sortedCoordinates) {
     var y = c[2];
     var depth = x + y + z;
 
-    if (!tileIsSolid(getWorldTile(z, x, y))) {
+    if (!tileIsVisible(getWorldTile(z, x, y))) {
     	continue;
     }
 
@@ -728,7 +728,7 @@ function getIntroTile(z, x, y) {
       return STREET_LIGHT;
     }
 
-    if ( (z >= -10 && z <= 2) && Math.abs(x) < 10 && Math.abs(y) < 10) {
+    if (z <= 2) {
       return SOLID_BLOCK;
     }
     return EMPTY;
@@ -883,7 +883,9 @@ function tryToMovePlayer(dz, dx, dy) {
 }
 */
 
-
+function tileIsSolid(tile) {
+	return tile == SOLID_BLOCK || tile == INVISIBLE_BLOCK;
+}
 
 function projectOut(blocks) {
   width = 0.3;
@@ -900,34 +902,37 @@ function projectOut(blocks) {
     var My = Math.floor(py + width);
 
     l = []
-    for (var z = mz; z <= Mz; z+=1) {
-    for (var x = mx; x <= Mx; x+=1) {
-    for (var y = my; y <= My; y+=1) {
-      l.push({distance: Math.abs(z + 0.5 - pz) + Math.abs(x + 0.5 - px) + Math.abs(y + 0.5 - py), value:[z,x,y]});
+    for (var iz = mz; iz <= Mz; iz+=1) {
+    for (var ix = mx; ix <= Mx; ix+=1) {
+    for (var iy = my; iy <= My; iy+=1) {
+      l.push({distance: Math.abs(iz + 0.5 - pz) + Math.abs(ix + 0.5 - px) + Math.abs(iy + 0.5 - py), value:[iz,ix,iy]});
     }}}
 
     l.sort(function(a, b){return a.distance - b.distance});
     l = l.map(function(a){return a.value});
 
     for (var i = 0; i < l.length && !pushed; i+=1) {
-      z = l[i][0];
-      x = l[i][1];
-      y = l[i][2];
+      var z = l[i][0];
+      var x = l[i][1];
+      var y = l[i][2];
       a = getWorldTile(z, x, y);
       if (a == SOLID_BLOCK || a == INVISIBLE_BLOCK) {
         // push in minimum valid direction
         //console.log(pz, px, py);
         //console.log(mz, Mz, mx, Mx, my, My);
-        var z_plus_move = getWorldTile(z+1, x, y) == 1 ? 10 : z + 1 + width - pz;
-        var z_minus_move = getWorldTile(z-1, x, y) == 1 ? -10 : z - width - pz;
-        var x_plus_move = getWorldTile(z, x+1, y) == 1 ? 10 : x + 1 + width - px;
-        var x_minus_move = getWorldTile(z, x-1, y) == 1 ? -10 : x - width - px;
-        var y_plus_move = getWorldTile(z, x, y+1) == 1 ? 10 : y + 1 + width - py;
-        var y_minus_move = getWorldTile(z, x, y-1) == 1 ? -10 : y - width - py;
+        var z_plus_move  = tileIsSolid(getWorldTile(z+1, x,   y  )) ?  10 : z + 1 + width - pz;
+        var z_minus_move = tileIsSolid(getWorldTile(z-1, x,   y  )) ? -10 : z     - width - pz;
+        var x_plus_move  = tileIsSolid(getWorldTile(z,   x+1, y  )) ?  10 : x + 1 + width - px;
+        var x_minus_move = tileIsSolid(getWorldTile(z,   x-1, y  )) ? -10 : x     - width - px;
+        var y_plus_move  = tileIsSolid(getWorldTile(z,   x,   y+1)) ?  10 : y + 1 + width - py;
+        var y_minus_move = tileIsSolid(getWorldTile(z,   x,   y-1)) ? -10 : y     - width - py;
         var z_off = z_plus_move < -z_minus_move ? z_plus_move : z_minus_move;
         var x_off = x_plus_move < -x_minus_move ? x_plus_move : x_minus_move;
         var y_off = y_plus_move < -y_minus_move ? y_plus_move : y_minus_move;
-        //console.log(z_off, x_off, y_off);
+        if (Math.abs(z_off) > 9 && Math.abs(x_off) > 9 && Math.abs(y_off) > 9) {
+        	continue;
+        }
+        // console.log(z, x, y, playerpos, x_off, y_off, z_off);
         if (Math.abs(z_off) < Math.abs(x_off) && Math.abs(z_off) < Math.abs(y_off)) {
           pz += z_off;
           pvz = 0.0;
@@ -935,6 +940,7 @@ function projectOut(blocks) {
             pushed = true;
           }
         } else if (Math.abs(x_off) < Math.abs(y_off)) {
+          // console.log(pz, px, py, playerpos);
           px += x_off;
           pvx = 0.0;
           if (x_off != 0.0) {
@@ -1140,7 +1146,8 @@ function update(blocks, sortedCoordinates) {
   var offsetChanged = offsetZ != oldoffset[0] || offsetX != oldoffset[1] || offsetY != oldoffset[2];
   var horizontal_player_correction_changed = horizontal_player_correction != old_horizontal_player_correction;
   var vertical_player_correction_changed = vertical_player_correction != old_vertical_player_correction;
-  var needRedraw = /*positionChanged ||*/ offsetChanged || vertical_player_correction_changed || horizontal_player_correction_changed || (LEVEL==SPINNING_SECTORS) || displayChanged || force_redraw;
+  var needRedraw = positionChanged || offsetChanged || vertical_player_correction_changed || horizontal_player_correction_changed || (LEVEL==SPINNING_SECTORS) || displayChanged || force_redraw;
+
   force_redraw = false;
 
 
