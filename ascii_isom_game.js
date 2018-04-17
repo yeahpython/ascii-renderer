@@ -1003,7 +1003,7 @@ function projectOut(blocks) {
 function auto_resize() {
   var displayText = document.getElementById('active-text');
   w = Math.round(displayText.offsetWidth / 8) + 14;
-  h = Math.round(displayText.offsetWidth / 17) + 14;
+  h = Math.round(displayText.offsetHeight / 16) + 14;
   var displayChanged = false;
   if (VIEWPORT_WIDTH !== w || VIEWPORT_HEIGHT !== h) {
     console.log("Display width was changed from " + VIEWPORT_WIDTH + " to " + w);
