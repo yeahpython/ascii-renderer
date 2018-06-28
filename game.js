@@ -219,16 +219,21 @@ function clear(lines) {
 }
 
 // Fills in |lines| by iterating through |blocks| using |sortedCoordinates|
-function render(sortedCoordinates) {
-  render_x_offset = horizontal_camera_correction;
-  render_z_offset = vertical_camera_correction;
-  var X = RENDERING_BASEPOINT_X + render_x_offset; // rightward shift of basepoint
-  var Y = RENDERING_BASEPOINT_Y + render_z_offset; // downward shift of basepoint
+//  - sortedCoordinates: Sorted list of coordinates to render.
+//  - lines: Buffer to which we will render the text
+//  - horizontal_camera_correction: horizontal offset caused by camera position
+//  - vertical_camera_correction: vertical offset caused by camera position
+//  - player position: position of player in world coordinates.
+//  - horizontal_player_correction: horiztonal correction of player based on float position
+//  - vertical_player_correction: vertical correction of player based on float position.
+function render(sortedCoordinates, lines, horizontal_camera_correction, vertical_camera_correction, player_position, horizontal_player_correction, vertical_player_correction) {
+  var X = RENDERING_BASEPOINT_X + horizontal_camera_correction; // rightward shift of basepoint
+  var Y = RENDERING_BASEPOINT_Y + vertical_camera_correction; // downward shift of basepoint
   clear(lines);
 
   // Extra coordinates to be injected into the loop. Should be sorted in the
   // same way as sortedCoordinates.
-  var extra_coordinates = [playerpos.slice(0)];
+  var extra_coordinates = [player_position];
 
   var block_index = 0;
   var extra_index = 0;
@@ -1023,7 +1028,7 @@ function update(blocks, sortedCoordinates) {
 
 
   if (needRedraw) {
-    render(sortedCoordinates);
+    render(sortedCoordinates, lines, horizontal_camera_correction, vertical_camera_correction, playerpos.slice(0), horizontal_player_correction, vertical_player_correction);
     setString();
   }
   window.requestAnimationFrame(function(){
