@@ -1189,9 +1189,9 @@ function update(blocks, sortedCoordinates) {
     // add player here
       setString();
   }
-  setTimeout(function(){
+  window.requestAnimationFrame(function(){
     update(blocks, sortedCoordinates);
-  }, 20);
+  });
 }
 
 function initialize() {
