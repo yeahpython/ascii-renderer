@@ -993,7 +993,7 @@ function update(blocks, sortedCoordinates) {
   var old_vertical_player_correction = vertical_player_correction;
 
   // Position and velocity update
-  if (LEVEL != 1) {
+  if (LEVEL != SPINNING_SECTORS) {
     physics_update();
     update_discrete_coordinates();
   }
