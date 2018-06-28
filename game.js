@@ -992,6 +992,40 @@ class Level {
     console.log("Sorted coordinates have length " + coordinates.length);
     return coordinates.sort(coordinateComparison);
   }
+
+  update() {
+    var oldpos = this.playerpos.slice(0);
+    var oldoffset = [offsetZ, offsetX, offsetY];
+    var old_horizontal_player_correction = this.horizontal_player_correction;
+    var old_vertical_player_correction = this.vertical_player_correction;
+
+    // Position and velocity update
+    if (LEVEL != SPINNING_SECTORS) {
+      this.physics_update();
+      this.update_discrete_coordinates();
+    }
+
+
+    if (LEVEL == SPINNING_SECTORS) {
+      this.playerpos = [0,0,0];
+      offsetZ = z_center;
+      offsetX = x_center;
+      offsetY = y_center;
+    } else {
+      offsetZ = 6 - this.camerapos[0];
+      offsetY = 30 - this.camerapos[2];
+      offsetX = 35 - this.camerapos[1];
+    }
+
+    // Detect if redraw is necessary. Checking for camera changes is unnecessary since all camera changes are induced by
+    // player position changes.
+    var positionChanged = oldpos[0] != this.playerpos[0] || oldpos[1] != this.playerpos[1] || oldpos[2] != this.playerpos[2];
+    var offsetChanged = offsetZ != oldoffset[0] || offsetX != oldoffset[1] || offsetY != oldoffset[2];
+    var horizontal_player_correction_changed = this.horizontal_player_correction != old_horizontal_player_correction;
+    var vertical_player_correction_changed = this.vertical_player_correction != old_vertical_player_correction;
+
+    return positionChanged || offsetChanged || vertical_player_correction_changed || horizontal_player_correction_changed || (LEVEL==SPINNING_SECTORS);
+  }
 }
 
 // Singleton class for managing the entire flow.
@@ -1004,36 +1038,9 @@ class Game {
   update_loop() {
     var displayChanged = auto_resize();
 
-    var oldpos = this.level.playerpos.slice(0);
-    var oldoffset = [offsetZ, offsetX, offsetY];
-    var old_horizontal_player_correction = this.level.horizontal_player_correction;
-    var old_vertical_player_correction = this.level.vertical_player_correction;
+    var level_changed = this.level.update();
 
-    // Position and velocity update
-    if (LEVEL != SPINNING_SECTORS) {
-      this.level.physics_update();
-      this.level.update_discrete_coordinates();
-    }
-
-
-    if (LEVEL == SPINNING_SECTORS) {
-      this.level.playerpos = [0,0,0];
-      offsetZ = z_center;
-      offsetX = x_center;
-      offsetY = y_center;
-    } else {
-      offsetZ = 6 - this.level.camerapos[0];
-      offsetY = 30 - this.level.camerapos[2];
-      offsetX = 35 - this.level.camerapos[1];
-    }
-
-    // Detect if redraw is necessary. Checking for camera changes is unnecessary since all camera changes are induced by
-    // player position changes.
-    var positionChanged = oldpos[0] != this.level.playerpos[0] || oldpos[1] != this.level.playerpos[1] || oldpos[2] != this.level.playerpos[2];
-    var offsetChanged = offsetZ != oldoffset[0] || offsetX != oldoffset[1] || offsetY != oldoffset[2];
-    var horizontal_player_correction_changed = this.level.horizontal_player_correction != old_horizontal_player_correction;
-    var vertical_player_correction_changed = this.level.vertical_player_correction != old_vertical_player_correction;
-    var needRedraw = positionChanged || offsetChanged || vertical_player_correction_changed || horizontal_player_correction_changed || (LEVEL==SPINNING_SECTORS) || displayChanged || force_redraw;
+    var needRedraw = level_changed || displayChanged || force_redraw;
 
     force_redraw = false;
 
