@@ -409,7 +409,7 @@ function physics(blocks) {
   }
 }
 
-var keyStates = [false, false, false, false, false];
+var keyStates = {};
 
 function setString() {
   var displayText = document.getElementById('active-text');
@@ -430,12 +430,12 @@ function setString() {
     partialJoin.push (lines[i].slice(5 + leftcut, VIEWPORT_WIDTH - 4 - rightcut).join(""));
   }
   displayText.innerHTML = partialJoin.join("<br>");
-  // displayText.innerHTML += "<br>" + (keyStates[1] ? "^" : "w") + "<br>" +
-  //                                   (keyStates[0] ? "&lt;" : "a") +
-  //                                   (keyStates[3] ? "v" : "s") +
-  //                                   (keyStates[2] ? "&gt;" : "d") +
+  // displayText.innerHTML += "<br>" + (keyStates["W"] ? "^" : "w") + "<br>" +
+  //                                   (keyStates["A"] ? "&lt;" : "a") +
+  //                                   (keyStates["S"] ? "v" : "s") +
+  //                                   (keyStates["D"] ? "&gt;" : "d") +
   //                                   "<br>" +
-  //                                   (keyStates[4] ? "[JETPACK]":"[       ]") +
+  //                                   (keyStates["J"] ? "[JETPACK]":"[       ]") +
   //                                   "<br>WASD to move, J to jetpack";
 }
 
@@ -874,24 +874,24 @@ function physics_update() {
 
   // User input
   var a = 0.1;
-  if (keyStates[0]) { // A
+  if (keyStates["A"] === true) {
     pvx += a;
   }
-  if (keyStates[2]) { // D
+  if (keyStates["D"] === true) {
     pvx -= a;
   }
-  if (keyStates[1]) { // W
+  if (keyStates["W"] === true) {
     pvy -= a;
   }
-  if (keyStates[3]) { // S
+  if (keyStates["S"] === true) {
     pvy += a;
   }
-  if (keyStates[4]) {
+  if (keyStates["J"] === true) {
     pvz += 2 * a;
   }
 
   // Velocity decay
-  if (!keyStates[0] && !keyStates[1] && !keyStates[2] && !keyStates[3] && !keyStates[4]) {
+  if (!keyStates["A"] && !keyStates["D"] && !keyStates["W"] && !keyStates["S"] && !keyStates["J"]) {
     pvx *= 0.9;
     pvy *= 0.9;
     pvz *= 0.9;
@@ -1032,48 +1032,13 @@ function update(blocks, sortedCoordinates) {
 }
 
 function initialize() {
-  document.addEventListener("keydown", keyDownHandler, false);
-  document.addEventListener("keyup", keyUpHandler, false);
+  document.addEventListener("keydown", function(event) {
+    keyStates[String.fromCharCode(event.keyCode)] = true;
+  }, false);
+
+  document.addEventListener("keyup", function(event) {
+    keyStates[String.fromCharCode(event.keyCode)] = false;
+  }, false);
+
   startAnimationLoop();
-}
-
-function keyDownHandler(event)
-{
-  setKey(event, true);
-}
-
-function keyUpHandler(event)
-{
-  setKey(event, false);
-}
-
-function setKey(event, state)
-{
-  var keyPressed = String.fromCharCode(event.keyCode);
-  if (keyPressed == "A") {       // left arrow
-    if (keyStates[0] != state) {
-      keyStates[0] = state;
-      force_redraw = true;
-    }
-  } else if (keyPressed == "W") { // up arrow
-    if (keyStates[1] != state) {
-      keyStates[1] = state;
-      force_redraw = true;
-    }
-  } else if (keyPressed == "D") { // right arrow
-    if (keyStates[2] != state) {
-      keyStates[2] = state;
-      force_redraw = true;
-    }
-  } else if (keyPressed == "S") { // down arrow
-    if (keyStates[3] != state) {
-      keyStates[3] = state;
-      force_redraw = true;
-    }
-  } else if (keyPressed == "J") { //jump
-    if (keyStates[4] != state) {
-      keyStates[4] = state;
-      force_redraw = true;
-    }
-  }
 }
