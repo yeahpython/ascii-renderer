@@ -218,7 +218,8 @@ function clear(lines) {
   setAll(lines, " ");
 }
 
-function render(blocks, sortedCoordinates) {
+// Fills in |lines| by iterating through |blocks| using |sortedCoordinates|
+function render(sortedCoordinates) {
   render_x_offset = horizontal_camera_correction;
   render_z_offset = vertical_camera_correction;
   var X = RENDERING_BASEPOINT_X + render_x_offset; // rightward shift of basepoint
@@ -1022,8 +1023,7 @@ function update(blocks, sortedCoordinates) {
 
 
   if (needRedraw) {
-    blocks[playerpos[0] + offsetZ][playerpos[1] + offsetX][playerpos[2]+offsetY] = 2;
-    render(blocks, sortedCoordinates);
+    render(sortedCoordinates);
     setString();
   }
   window.requestAnimationFrame(function(){
