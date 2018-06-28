@@ -16,9 +16,6 @@ var RECTANGLES = 2;
 var CUBE_FRAME = 3;
 var INTRO = 4
 
-// Hardcoded level.
-var LEVEL = INTRO;
-
 // Enumeration of block types.
 var EMPTY = 0;
 var SOLID_BLOCK = 1;
@@ -88,9 +85,6 @@ function handle2DBufferDimensionChange(w, h){
   RENDERING_BASEPOINT_X = ~~(VIEWPORT_WIDTH / 2 - render_x);
   RENDERING_BASEPOINT_Y = ~~(VIEWPORT_HEIGHT / 2 - render_y);
 
-  if (LEVEL != INTRO) {
-  	console.log("You're going to have a bad time...");
-  }
   resizeBuffers();
 };
 
@@ -358,10 +352,10 @@ function setString(element, lines) {
   // partialJoin.push(debug_message);
   skipInitial = 4;
   skipEnd = 5;
-  if (LEVEL == SPINNING_SECTORS) {
-    skipInitial = 16;
-    skipEnd = 14;
-  }
+  // if (LEVEL == SPINNING_SECTORS) {
+  //   skipInitial = 16;
+  //   skipEnd = 14;
+  // }
   var leftcut = 0;
   var rightcut = 0;
   for (var i = skipInitial; i < lines.length-skipEnd; i++) {
@@ -426,7 +420,7 @@ function startAnimationLoop() {
     LOOP_ACTIVE = true;
     blocks = generateBlockArray(HEIGHT, WIDTH, DEPTH);
     auto_resize();
-    var level = new Level(LEVEL);
+    var level = new Level(INTRO);
     var game = new Game(blocks, level);
     game.update_loop();
   }
