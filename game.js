@@ -62,15 +62,15 @@ var offsetY = 20;
 
 var force_redraw = true;
 
-var LOOP_ACTIVE = false;
-
-level_messages = {};
-level_messages[INTRO] = function(z, x, y){
-  if (x < 40) {
-    return ["Welcome!", "WASD to move,", "J to jetpack."];
-  } else {
-    return ["Congratulations,", "you made it!"];
+function getLevelMessage(map_id, z, x, y){
+  if (map_id === INTRO) {
+    if (x < 40) {
+      return ["Welcome!", "WASD to move,", "J to jetpack."];
+    } else {
+      return ["Congratulations,", "you made it!"];
+    }
   }
+  return "Flag!"
 };
 
 // Modify buffer sizes and change rendering parameters according to the provided dimensions.
@@ -303,7 +303,7 @@ function render(lines, level) {
 
       lines[YY + 1][XX + 3] = bright ? "<span style = \"color:white\">!</span>" : "?";
       if (bright && level.getWorldTile(z + 1, x, y) != STREET_LIGHT && level.getWorldTile(z + 1, x, y) != PLAYER) {
-        var msg = level_messages[level.map_id](z, x, y );
+        var msg = getLevelMessage(level.map_id, z, x, y);
         for (var row = 0; row < msg.length; row++) {
           for (var col = 0; col < msg[row].length; col++) {
             try {
@@ -414,12 +414,6 @@ function resizeBuffers() {
   lines = generateLines(VIEWPORT_HEIGHT, VIEWPORT_WIDTH);
   renderBuffer = generateLines(VIEWPORT_HEIGHT, VIEWPORT_WIDTH);
   depthBuffer = generateDepthBuffer(VIEWPORT_HEIGHT, VIEWPORT_WIDTH);
-}
-
-function startAnimationLoop() {
-  if (LOOP_ACTIVE === false){
-    LOOP_ACTIVE = true;
-  }
 }
 
 function getWetlandTile(z, x, y) {
