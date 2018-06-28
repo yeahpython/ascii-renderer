@@ -14,7 +14,8 @@ var WETLANDS = 0;
 var SPINNING_SECTORS = 1;
 var RECTANGLES = 2;
 var CUBE_FRAME = 3;
-var INTRO = 4
+var INTRO = 4;
+var FUNSIES = 5;
 
 // Enumeration of block types.
 var EMPTY = 0;
@@ -418,11 +419,6 @@ function resizeBuffers() {
 function startAnimationLoop() {
   if (LOOP_ACTIVE === false){
     LOOP_ACTIVE = true;
-    blocks = generateBlockArray(HEIGHT, WIDTH, DEPTH);
-    auto_resize();
-    var level = new Level(INTRO);
-    var game = new Game(blocks, level);
-    game.update_loop();
   }
 }
 
@@ -917,8 +913,9 @@ class Level {
       return getCubeFrameTile(z, x, y);
     } else if (this.map_id == INTRO) {
       return getIntroTile(z, x, y);
-    } else {
-      assert(false);
+    }
+    else {
+      console.assert(false);
     }
   }
 
@@ -1051,16 +1048,30 @@ class Game {
       that.update_loop();
     });
   }
+
+  loadLevel(id) {
+    this.level = new Level(id);
+  }
 }
 
 function initialize() {
+  blocks = generateBlockArray(HEIGHT, WIDTH, DEPTH);
+  auto_resize();
+  var level = new Level(INTRO);
+  var game = new Game(blocks, level);
+
   document.addEventListener("keydown", function(event) {
     keyStates[String.fromCharCode(event.keyCode)] = true;
   }, false);
 
   document.addEventListener("keyup", function(event) {
     keyStates[String.fromCharCode(event.keyCode)] = false;
+
+    if (String.fromCharCode(event.keyCode) == "N") {
+      game.loadLevel(INTRO);
+    }
   }, false);
 
-  startAnimationLoop();
+  game.update_loop();
+
 }
