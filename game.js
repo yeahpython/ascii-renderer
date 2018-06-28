@@ -15,7 +15,6 @@ var SPINNING_SECTORS = 1;
 var RECTANGLES = 2;
 var CUBE_FRAME = 3;
 var INTRO = 4;
-var FUNSIES = 5;
 
 // Enumeration of block types.
 var EMPTY = 0;
