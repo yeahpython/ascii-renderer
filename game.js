@@ -308,7 +308,7 @@ function render(lines, level) {
 
       lines[YY + 1][XX + 3] = bright ? "<span style = \"color:white\">!</span>" : "?";
       if (bright && level.getWorldTile(z + 1, x, y) != STREET_LIGHT && level.getWorldTile(z + 1, x, y) != PLAYER) {
-        var msg = level_messages[LEVEL](z, x, y );
+        var msg = level_messages[level.map_id](z, x, y );
         for (var row = 0; row < msg.length; row++) {
           for (var col = 0; col < msg[row].length; col++) {
             try {
@@ -426,7 +426,8 @@ function startAnimationLoop() {
     LOOP_ACTIVE = true;
     blocks = generateBlockArray(HEIGHT, WIDTH, DEPTH);
     auto_resize();
-    var game = new Game(blocks);
+    var level = new Level(LEVEL);
+    var game = new Game(blocks, level);
     game.update_loop();
   }
 }
@@ -730,7 +731,9 @@ function horizontalCorrection(x, y , z) {
 }
 
 class Level {
-  constructor() {
+  constructor(map_id) {
+    this.map_id = map_id;
+
     // Fine-grained offset of player from their cube coordinate, used to enable sub-
     // block-sized motion.
     this.horizontal_player_correction = 0; // should be 0, 1  or 2
@@ -910,15 +913,15 @@ class Level {
     }
 
     var output = EMPTY;
-    if (LEVEL == WETLANDS) {
+    if (this.map_id == WETLANDS) {
       return getWetlandTile(z, x, y);
-    } else if (LEVEL == SPINNING_SECTORS) {
+    } else if (this.map_id == SPINNING_SECTORS) {
       return getSpinningSectorsTile(z, x, y);
-    } else if (LEVEL == RECTANGLES) {
+    } else if (this.map_id == RECTANGLES) {
       return getRectanglesLevelTile(z, x, y);
-    } else if (LEVEL == CUBE_FRAME) {
+    } else if (this.map_id == CUBE_FRAME) {
       return getCubeFrameTile(z, x, y);
-    } else if (LEVEL == INTRO) {
+    } else if (this.map_id == INTRO) {
       return getIntroTile(z, x, y);
     } else {
       assert(false);
@@ -1000,13 +1003,13 @@ class Level {
     var old_vertical_player_correction = this.vertical_player_correction;
 
     // Position and velocity update
-    if (LEVEL != SPINNING_SECTORS) {
+    if (this.map_id != SPINNING_SECTORS) {
       this.physics_update();
       this.update_discrete_coordinates();
     }
 
 
-    if (LEVEL == SPINNING_SECTORS) {
+    if (this.map_id == SPINNING_SECTORS) {
       this.playerpos = [0,0,0];
       offsetZ = z_center;
       offsetX = x_center;
@@ -1024,15 +1027,15 @@ class Level {
     var horizontal_player_correction_changed = this.horizontal_player_correction != old_horizontal_player_correction;
     var vertical_player_correction_changed = this.vertical_player_correction != old_vertical_player_correction;
 
-    return positionChanged || offsetChanged || vertical_player_correction_changed || horizontal_player_correction_changed || (LEVEL==SPINNING_SECTORS);
+    return positionChanged || offsetChanged || vertical_player_correction_changed || horizontal_player_correction_changed || (this.map_id==SPINNING_SECTORS);
   }
 }
 
 // Singleton class for managing the entire flow.
 class Game {
-  constructor(blocks) {
+  constructor(blocks, level) {
     this.blocks = blocks;
-    this.level = new Level();
+    this.level = level;
   }
 
   update_loop() {
