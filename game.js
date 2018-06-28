@@ -318,10 +318,16 @@ function render(blocks, sortedCoordinates) {
       depthBuffer[YY+3][XX+4] = depth;*/
 
 
-      lines[YY][XX] = (hasYNeighbor && !hasYZNeighbor) ? " " :"_";     //str(i)
+      //   -101234
+      // 0   __
+      // 1  |\__\
+      // 2  | |  |
+      // 3   \|__|
+
+      lines[YY][XX] = (hasYNeighbor && !hasYZNeighbor) ? " " :"_";
       lines[YY][XX + 1] = (hasYNeighbor && !hasYZNeighbor) ? (hasYZXNeighbor ? lines[YY][XX + 1] : " ") :(hasYXBehindNeighbor? lines[YY][XX+1]:"_");
 
-      if (hasXZNeighbor) {
+      if (hasXZNeighbor && !hasYXBehindNeighbor) {
         lines[YY][XX + 2] = "|";
       } else {
         if (hasYNeighbor && !hasYZNeighbor) {
@@ -341,7 +347,10 @@ function render(blocks, sortedCoordinates) {
       lines[YY + 1][XX] = "\\";
       lines[YY + 1][XX + 1] = "_";
       lines[YY + 1][XX + 2] = "_";
-      lines[YY + 1][XX + 3] = (hasXNeighbor && !hasXZNeighbor) ? "_" : "\\";
+      lines[YY + 1][XX + 3] = (!hasXZNeighbor) ? "_" : "\\";
+      if (!hasXZNeighbor && !hasXNeighbor) {
+        lines[YY + 1][XX + 4] = "\\"
+      }
       lines[YY + 2][XX - 1] = (hasYNeighbor && !hasYXNeighbor) ? " " :"|";
       lines[YY + 2][XX]     = " ";
       lines[YY + 2][XX + 1] = "|";
@@ -403,10 +412,10 @@ function render(blocks, sortedCoordinates) {
       // }
       var bright = close;// && (Math.sin(new Date().getTime() * 3.14 / 300 - z / 2) > 0.0);
 
-      lines[YY + 1][XX + 2] = " ";
+      // lines[YY + 1][XX + 2] = " ";
       //lines[YY + 1][XX + 3] = "<span style = \"color:yellow\">*</span>";
       lines[YY + 1][XX + 3] = bright ? "<span style = \"color:white\">!</span>" : "?";
-      lines[YY + 1][XX + 4] = " ";
+      // lines[YY + 1][XX + 4] = " ";
       if (bright && getWorldTile(z + 1, x, y) != STREET_LIGHT && getWorldTile(z + 1, x, y) != PLAYER) {
         var msg = level_messages[LEVEL](z, x, y );
         for (var row = 0; row < msg.length; row++) {
@@ -421,12 +430,12 @@ function render(blocks, sortedCoordinates) {
       }
 
 
-      lines[YY + 2][XX + 2] = " ";
+      // lines[YY + 2][XX + 2] = " ";
       lines[YY + 2][XX + 3] = bright ? "<span style = \"color:white\">|</span>" : ".";
-      lines[YY + 2][XX + 4] = " ";
-      lines[YY + 3][XX + 2] = " ";
+      // lines[YY + 2][XX + 4] = " ";
+      // lines[YY + 3][XX + 2] = " ";
       lines[YY + 3][XX + 3] = bright ? "<span style = \"color:white\">|</span>" : ".";
-      lines[YY + 3][XX + 4] = " ";
+      // lines[YY + 3][XX + 4] = " ";
     } else if (tile == WAVE){
         //lines[YY+2][XX-1] = "~";
         //lines[YY+2][XX+0] = "<span style = \"color:blue\">s</span>";
@@ -442,7 +451,7 @@ function render(blocks, sortedCoordinates) {
       }
     else {
       // Render the player
-      lines[YY + 2 - vertical_player_correction][XX + 0 + 2 - horizontal_player_correction] = "<span style = \"color:white\">" + (pvx > 0 ? "q" : "p") + "</span>";
+      lines[YY + 2 - vertical_player_correction][XX + 0 + 2 - horizontal_player_correction] = "<span style = \"color:white\">" + ( (pvx - 0.66 * pvy) > 0.15 ? "\\" : ((pvx - 0.66 * pvy) < -0.15 ? "/" : "|")) + "</span>";
       // lines[YY + 2 - vertical_player_correction][XX + 1 + 2 - horizontal_player_correction] = "<span style = \"color:white\">o</span>";
       // lines[YY + 2 - vertical_player_correction][XX + 2 + 2 - horizontal_player_correction] = "<span style = \"color:white\">u</span>";
 
