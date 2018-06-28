@@ -277,7 +277,7 @@ function render(blocks, sortedCoordinates) {
     var YY = Y -2*(z + offsetZ)                  +   (y + offsetY);
     var XX = X                  -3*(x + offsetX) + 2*(y + offsetY);
 
-    if (YY < 0 || YY + 3 >= VIEWPORT_HEIGHT || XX <= 0 || XX + 4 > VIEWPORT_WIDTH) {
+    if (YY < 0 || YY + 3 >= VIEWPORT_HEIGHT || XX <= 1 || XX + 4 > VIEWPORT_WIDTH) {
       continue;
     }
     var tile = getWorldTile(z, x, y);
