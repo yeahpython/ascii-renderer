@@ -60,8 +60,6 @@ var offsetZ = 0;
 var offsetX = 30;
 var offsetY = 20;
 
-var force_redraw = true;
-
 function getLevelMessage(map_id, z, x, y){
   if (map_id === INTRO) {
     if (x < 40) {
@@ -296,9 +294,6 @@ function render(lines, level) {
 
 
       var close = distance + height < 10;
-      // if (close) {
-      //   force_redraw = true;
-      // }
       var bright = close;// && (Math.sin(new Date().getTime() * 3.14 / 300 - z / 2) > 0.0);
 
       lines[YY + 1][XX + 3] = bright ? "<span style = \"color:white\">!</span>" : "?";
@@ -1021,6 +1016,7 @@ class Game {
   constructor(blocks, level) {
     this.blocks = blocks;
     this.level = level;
+    this.force_redraw = true;
   }
 
   updateLoop() {
@@ -1028,9 +1024,9 @@ class Game {
 
     var level_changed = this.level.update();
 
-    var needRedraw = level_changed || displayChanged || force_redraw;
+    var needRedraw = level_changed || displayChanged || this.force_redraw;
 
-    force_redraw = false;
+    this.force_redraw = false;
 
 
     if (needRedraw) {
