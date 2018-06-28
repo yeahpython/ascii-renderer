@@ -1086,12 +1086,12 @@ function toTileCoordinate(x, y, z) {
 
 // Calculate fine 2D vertical correction in render position from 3D float coordinates.
 function verticalCorrection(x, y, z) {
-  return Math.round(2 * (z - Math.floor(z)) - (y - Math.floor(y)));
+  return Math.floor(2 * (z - Math.floor(z))) - Math.floor((y - Math.floor(y)));
 }
 
 // Calculate fine 2D horizontal correction in render position from 3D float coordinates.
 function horizontalCorrection(x, y , z) {
-  return Math.round(3 * (x - Math.floor(x)) - 2 * (y - Math.floor(y)));
+  return Math.floor(3 * (x - Math.floor(x))) - Math.floor(2 * (y - Math.floor(y)));
 }
 
 function update_discrete_coordinates() {
@@ -1112,9 +1112,6 @@ function update_discrete_coordinates() {
   } else if (cy - py < -3.0) {
     cy = py - 3.0;
   }
-  // cx = px;
-  // cy = py;
-  // cz = pz;
 
   playerpos = toTileCoordinate(px, py, pz);
   camerapos = toTileCoordinate(cx, cy, cz);
