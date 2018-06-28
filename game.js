@@ -417,10 +417,9 @@ function physics(blocks) {
 
 var keyStates = {};
 
-function setString() {
-  var displayText = document.getElementById('active-text');
-  // displayText.innerHTML = debug_message;
-  //displayText.innerHTML = "";
+function setString(element, lines) {
+  // element.innerHTML = debug_message;
+  //element.innerHTML = "";
 
   var partialJoin = [];
   // partialJoin.push(debug_message);
@@ -435,8 +434,8 @@ function setString() {
   for (var i = skipInitial; i < lines.length-skipEnd; i++) {
     partialJoin.push (lines[i].slice(5 + leftcut, VIEWPORT_WIDTH - 4 - rightcut).join(""));
   }
-  displayText.innerHTML = partialJoin.join("<br>");
-  // displayText.innerHTML += "<br>" + (keyStates["W"] ? "^" : "w") + "<br>" +
+  element.innerHTML = partialJoin.join("<br>");
+  // element.innerHTML += "<br>" + (keyStates["W"] ? "^" : "w") + "<br>" +
   //                                   (keyStates["A"] ? "&lt;" : "a") +
   //                                   (keyStates["S"] ? "v" : "s") +
   //                                   (keyStates["D"] ? "&gt;" : "d") +
@@ -792,7 +791,7 @@ function tileIsSolid(tile) {
 }
 
 function projectOut(blocks) {
-  width = 0.3;
+  var width = 0.3;
 
 
   for (var projection_iteration = 0; projection_iteration < 6; projection_iteration++) {
@@ -1029,7 +1028,7 @@ function update(blocks, sortedCoordinates) {
 
   if (needRedraw) {
     render(sortedCoordinates, lines, horizontal_camera_correction, vertical_camera_correction, playerpos.slice(0), horizontal_player_correction, vertical_player_correction);
-    setString();
+    setString(document.getElementById('active-text'), lines);
   }
   window.requestAnimationFrame(function(){
     update(blocks, sortedCoordinates);
