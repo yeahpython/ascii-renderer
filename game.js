@@ -144,13 +144,8 @@ function clear(lines) {
 }
 
 // Fills in |lines| by iterating through |blocks| using |sortedCoordinates|
-//  - sortedCoordinates: Sorted list of coordinates to render.
 //  - lines: Buffer to which we will render the text
-//  - horizontal_camera_correction: horizontal offset caused by camera position
-//  - vertical_camera_correction: vertical offset caused by camera position
-//  - player position: position of player in world coordinates.
-//  - horizontal_player_correction: horiztonal correction of player based on float position
-//  - vertical_player_correction: vertical correction of player based on float position.
+//  - level: Container for all the information associated with a given map.
 function render(lines, level) {
   var X = RENDERING_BASEPOINT_X + level.horizontal_camera_correction; // rightward shift of basepoint
   var Y = RENDERING_BASEPOINT_Y + level.vertical_camera_correction; // downward shift of basepoint
@@ -162,24 +157,14 @@ function render(lines, level) {
 
   var block_index = 0;
   var extra_index = 0;
-  while (block_index < level.sortedCoordinates.length || extra_index < extra_coordinates.length) {
 
-  	// This logic basically mixes the two arrays together.
-  	if (block_index >= level.sortedCoordinates.length) {
-  		var c = extra_coordinates[extra_index];
-  		extra_index++;
-  	} else if (extra_index >= extra_coordinates.length) {
-  		var c = level.sortedCoordinates[block_index];
-  		block_index++;
-  	} else {
-  		if (coordinateComparison(extra_coordinates[extra_index], level.sortedCoordinates[block_index]) < 0) {
-  			var c = extra_coordinates[extra_index];
-  			extra_index++;
-  		} else {
-  			var c = level.sortedCoordinates[block_index];
-  			block_index++;
-  		}
-  	}
+  var get_next = level.getFreshIterator();
+
+  while (true) {
+    var c = get_next();
+    if (c === null) {
+      return;
+    }
 
     var z = c[0];
     var x = c[1];
@@ -1007,6 +992,39 @@ class Level {
     var vertical_player_correction_changed = this.vertical_player_correction != old_vertical_player_correction;
 
     return positionChanged || offsetChanged || vertical_player_correction_changed || horizontal_player_correction_changed || (this.map_id==SPINNING_SECTORS);
+  }
+
+  getFreshIterator() {
+    // Extra coordinates to be injected into the loop. Should be sorted in the
+    // same way as sortedCoordinates.
+    var extra_coordinates = [this.playerpos.slice(0)];
+
+    var block_index = 0;
+    var extra_index = 0;
+
+    var that = this;
+
+    return function() {
+      console.assert(block_index <= that.sortedCoordinates.length);
+      console.assert(extra_index <= extra_coordinates.length);
+      if (block_index == that.sortedCoordinates.length && extra_index == extra_coordinates.length) {
+        return null;
+      }
+
+      // This logic basically mixes the two arrays together.
+      if (block_index >= that.sortedCoordinates.length) {
+        return extra_coordinates[extra_index++].slice(0);
+      } else if (extra_index >= extra_coordinates.length) {
+        return that.sortedCoordinates[block_index++].slice(0);
+      }
+
+      if (coordinateComparison(extra_coordinates[extra_index], that.sortedCoordinates[block_index]) < 0) {
+        return extra_coordinates[extra_index++].slice(0);
+      } else {
+        return that.sortedCoordinates[block_index++].slice(0);
+      }
+
+    }
   }
 }
 
