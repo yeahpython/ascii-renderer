@@ -52,51 +52,19 @@ var VIEWPORT_HEIGHT, VIEWPORT_WIDTH;
 // Reference coordinate from which to render all 3D objects.
 var RENDERING_BASEPOINT_X, RENDERING_BASEPOINT_Y;
 
-// Fine-grained offset of player from their cube coordinate, used to enable sub-
-// block-sized motion.
-var horizontal_player_correction = 0; // should be 0, 1  or 2
-var vertical_player_correction = 0;
-
-// Fine-grained offset of camera from their cube coordinate, used to enable sub-
-// block-sized motion.
-var horizontal_camera_correction = 0; // should be 0, 1  or 2
-var vertical_camera_correction = 0;
-
 // Fine-grained offset of rendering from the rendering basepoint, used to enable
 // sub-block-sized motion
 var render_x_offset = 0;
 var render_z_offset = 0;
-
-// Float coordinates of the user relative to the world coordinates.
-var px = 0.0;
-var py = 0.0;
-var pz = 10.0;
-
-// Float coordinates of the camera relative to the world coordinates.
-var cx = px;
-var cy = py;
-var cz = pz;
-
-// Velocity of the user.
-var pvx = 0.02;
-var pvy = 0.02;
-var pvz = 0.0;
 
 // These offsets are the offset of the world coordinates from the buffer slice coordinates.
 var offsetZ = 0;
 var offsetX = 30;
 var offsetY = 20;
 
-// This is the (block) coordinate of the player in world coordinates.
-var playerpos = [HEIGHT -1 /* z */, 0 /* x */, 0 /* y */];
-// This is the (block) coordinate of the camera in world coordinates.
-var camerapos = [0,0,0]
-
 var force_redraw = true;
 
 var LOOP_ACTIVE = false;
-
-var sortedCoordinates;
 
 level_messages = {};
 level_messages[INTRO] = function(z, x, y){
@@ -123,7 +91,6 @@ function handle2DBufferDimensionChange(w, h){
   if (LEVEL != INTRO) {
   	console.log("You're going to have a bad time...");
   }
-  sortedCoordinates = getSortedCoordinatesFromConnectedComponent(2, 0, 0);
   resizeBuffers();
 };
 
@@ -145,40 +112,6 @@ function coordinateComparison(a, b) {
 		return y_diff;
 	}
 	return a[0] - b[0];
-}
-
-function getSortedCoordinatesFromConnectedComponent(z, x, y) {
-  var found_coordinate = {};
-  var coordinates = [];
-  coordinates.push([z, x, y]);
-  found_coordinate[keyForCoord(z,x,y)] = true;
-  for (var queue_index = 0; queue_index < coordinates.length; queue_index++) {
-  	if (queue_index > 10000) {
-  	  console.log("Infinite loop? Breaking");
-  	  break;
-  	}
-  	var coord = coordinates[queue_index];
-  	for (var dz = -1; dz <= 1; dz++) {
-  	for (var dx = -1; dx <= 1; dx++) {
-  	for (var dy = -1; dy <= 1; dy++) {
-  	  // neighboring coordinate
-  	  var nz = coord[0] + dz;
-  	  var nx = coord[1] + dx;
-  	  var ny = coord[2] + dy;
-  	  var tile = getWorldTile(nz, nx, ny);
-  	  if (tileIsVisible(tile)) {
-  	  	var coord_string = keyForCoord(nz, nx, ny);
-  	  	if (found_coordinate[coord_string] !== true) {
-  	  		coordinates.push([nz, nx, ny]);
-  	  		found_coordinate[coord_string] = true;
-  	  	}
-  	  }
-  	}
-  	}
-  	}
-  }
-  console.log("Sorted coordinates have length " + coordinates.length);
-  return coordinates.sort(coordinateComparison);
 }
 
 // Returns a list of 3D coordinates corresponding to the blocks that will be rendered completely
@@ -226,32 +159,32 @@ function clear(lines) {
 //  - player position: position of player in world coordinates.
 //  - horizontal_player_correction: horiztonal correction of player based on float position
 //  - vertical_player_correction: vertical correction of player based on float position.
-function render(sortedCoordinates, lines, horizontal_camera_correction, vertical_camera_correction, player_position, horizontal_player_correction, vertical_player_correction) {
-  var X = RENDERING_BASEPOINT_X + horizontal_camera_correction; // rightward shift of basepoint
-  var Y = RENDERING_BASEPOINT_Y + vertical_camera_correction; // downward shift of basepoint
+function render(lines, level) {
+  var X = RENDERING_BASEPOINT_X + level.horizontal_camera_correction; // rightward shift of basepoint
+  var Y = RENDERING_BASEPOINT_Y + level.vertical_camera_correction; // downward shift of basepoint
   clear(lines);
 
   // Extra coordinates to be injected into the loop. Should be sorted in the
   // same way as sortedCoordinates.
-  var extra_coordinates = [player_position];
+  var extra_coordinates = [level.playerpos.slice(0)];
 
   var block_index = 0;
   var extra_index = 0;
-  while (block_index < sortedCoordinates.length || extra_index < extra_coordinates.length) {
+  while (block_index < level.sortedCoordinates.length || extra_index < extra_coordinates.length) {
 
   	// This logic basically mixes the two arrays together.
-  	if (block_index >= sortedCoordinates.length) {
+  	if (block_index >= level.sortedCoordinates.length) {
   		var c = extra_coordinates[extra_index];
   		extra_index++;
   	} else if (extra_index >= extra_coordinates.length) {
-  		var c = sortedCoordinates[block_index];
+  		var c = level.sortedCoordinates[block_index];
   		block_index++;
   	} else {
-  		if (coordinateComparison(extra_coordinates[extra_index], sortedCoordinates[block_index]) < 0) {
+  		if (coordinateComparison(extra_coordinates[extra_index], level.sortedCoordinates[block_index]) < 0) {
   			var c = extra_coordinates[extra_index];
   			extra_index++;
   		} else {
-  			var c = sortedCoordinates[block_index];
+  			var c = level.sortedCoordinates[block_index];
   			block_index++;
   		}
   	}
@@ -261,23 +194,23 @@ function render(sortedCoordinates, lines, horizontal_camera_correction, vertical
     var y = c[2];
     var depth = x + y + z;
 
-    if (!tileIsVisible(getWorldTile(z, x, y))) {
+    if (!tileIsVisible(level.getWorldTile(z, x, y))) {
     	continue;
     }
 
-    var hasXNeighbor = getWorldTile(z, x-1, y) == SOLID_BLOCK;
-    var hasYNeighbor = getWorldTile(z, x, y-1) == SOLID_BLOCK;
-    var hasZNeighbor = getWorldTile(z-1, x, y) == SOLID_BLOCK;
-    var hasXZNeighbor = getWorldTile(z+1, x-1, y) == SOLID_BLOCK;
-    var hasXYNeighbor = getWorldTile(z, x-1, y+1) == SOLID_BLOCK;
-    var hasYXNeighbor = getWorldTile(z, x+1, y-1) == SOLID_BLOCK;
-    var hasYZNeighbor = getWorldTile(z+1, x, y-1) == SOLID_BLOCK;
-    var hasZXNeighbor = getWorldTile(z-1, x+1, y) == SOLID_BLOCK;
-    var hasZYNeighbor = getWorldTile(z-1, x, y+1) == SOLID_BLOCK;
+    var hasXNeighbor = level.getWorldTile(z, x-1, y) == SOLID_BLOCK;
+    var hasYNeighbor = level.getWorldTile(z, x, y-1) == SOLID_BLOCK;
+    var hasZNeighbor = level.getWorldTile(z-1, x, y) == SOLID_BLOCK;
+    var hasXZNeighbor = level.getWorldTile(z+1, x-1, y) == SOLID_BLOCK;
+    var hasXYNeighbor = level.getWorldTile(z, x-1, y+1) == SOLID_BLOCK;
+    var hasYXNeighbor = level.getWorldTile(z, x+1, y-1) == SOLID_BLOCK;
+    var hasYZNeighbor = level.getWorldTile(z+1, x, y-1) == SOLID_BLOCK;
+    var hasZXNeighbor = level.getWorldTile(z-1, x+1, y) == SOLID_BLOCK;
+    var hasZYNeighbor = level.getWorldTile(z-1, x, y+1) == SOLID_BLOCK;
 
-    var hasYZXNeighbor = getWorldTile(z+1, x-1, y-1) == SOLID_BLOCK;
+    var hasYZXNeighbor = level.getWorldTile(z+1, x-1, y-1) == SOLID_BLOCK;
 
-    var hasYXBehindNeighbor = getWorldTile(z, x-1, y-1) == SOLID_BLOCK;
+    var hasYXBehindNeighbor = level.getWorldTile(z, x-1, y-1) == SOLID_BLOCK;
 
     // World coordinates -> "block" coordinates -> Screen coordinates
     var YY = Y -2*(z + offsetZ)                  +   (y + offsetY);
@@ -286,7 +219,7 @@ function render(sortedCoordinates, lines, horizontal_camera_correction, vertical
     if (YY < 0 || YY + 3 >= VIEWPORT_HEIGHT || XX <= 1 || XX + 4 > VIEWPORT_WIDTH) {
       continue;
     }
-    var tile = getWorldTile(z, x, y);
+    var tile = level.getWorldTile(z, x, y);
     if (tile == SOLID_BLOCK){
 
       //   -101234
@@ -354,12 +287,12 @@ function render(sortedCoordinates, lines, horizontal_camera_correction, vertical
         lines[YY + 3][XX + 4] = "|";
       }
     } else if (tile == STREET_LIGHT){
-      var distance = Math.max(Math.abs(playerpos[1] - x), Math.abs(playerpos[2] - y));
+      var distance = Math.max(Math.abs(level.playerpos[1] - x), Math.abs(level.playerpos[2] - y));
 
 
       var height = 0;
       for (var test_height_offset = 0; test_height_offset < 10; test_height_offset++) {
-        if (getWorldTile(z - test_height_offset, x, y) == STREET_LIGHT) {
+        if (level.getWorldTile(z - test_height_offset, x, y) == STREET_LIGHT) {
           height = test_height_offset;
         } else {
           break;
@@ -374,7 +307,7 @@ function render(sortedCoordinates, lines, horizontal_camera_correction, vertical
       var bright = close;// && (Math.sin(new Date().getTime() * 3.14 / 300 - z / 2) > 0.0);
 
       lines[YY + 1][XX + 3] = bright ? "<span style = \"color:white\">!</span>" : "?";
-      if (bright && getWorldTile(z + 1, x, y) != STREET_LIGHT && getWorldTile(z + 1, x, y) != PLAYER) {
+      if (bright && level.getWorldTile(z + 1, x, y) != STREET_LIGHT && level.getWorldTile(z + 1, x, y) != PLAYER) {
         var msg = level_messages[LEVEL](z, x, y );
         for (var row = 0; row < msg.length; row++) {
           for (var col = 0; col < msg[row].length; col++) {
@@ -396,7 +329,7 @@ function render(sortedCoordinates, lines, horizontal_camera_correction, vertical
       }
     else {
       // Render the player
-      lines[YY + 2 - vertical_player_correction][XX + 0 + 2 - horizontal_player_correction] = "<span style = \"color:white\">" + ( (pvx - 0.66 * pvy) > 0.15 ? "\\" : ((pvx - 0.66 * pvy) < -0.15 ? "/" : "|")) + "</span>";
+      lines[YY + 2 - level.vertical_player_correction][XX + 0 + 2 - level.horizontal_player_correction] = "<span style = \"color:white\">" + ( (level.pvx - 0.66 * level.pvy) > 0.15 ? "\\" : ((level.pvx - 0.66 * level.pvy) < -0.15 ? "/" : "|")) + "</span>";
     }
   }
 }
@@ -493,7 +426,7 @@ function startAnimationLoop() {
     LOOP_ACTIVE = true;
     blocks = generateBlockArray(HEIGHT, WIDTH, DEPTH);
     auto_resize();
-    var game = new Game(blocks, sortedCoordinates);
+    var game = new Game(blocks);
     game.update_loop();
   }
 }
@@ -739,33 +672,6 @@ function getIntroTile(z, x, y) {
   return INVISIBLE_BLOCK;
 }
 
-/*
-Modify this function to change the level
-*/
-function getWorldTile(z,x,y) {
-  if (z === playerpos[0] && x === playerpos[1] && y === playerpos[2]) {
-  	return PLAYER;
-  }
-  var output = EMPTY;
-  if (LEVEL == WETLANDS) {
-    return getWetlandTile(z, x, y);
-  } else if (LEVEL == SPINNING_SECTORS) {
-    return getSpinningSectorsTile(z, x, y);
-  } else if (LEVEL == RECTANGLES) {
-    return getRectanglesLevelTile(z, x, y);
-  } else if (LEVEL == CUBE_FRAME) {
-    return getCubeFrameTile(z, x, y);
-  } else if (LEVEL == INTRO) {
-    return getIntroTile(z, x, y);
-  } else {
-    assert(false);
-  }
-}
-
-function getTile(z,x,y) {
-  return getWorldTile(z-offsetZ, x-offsetX, y-offsetY);
-}
-
 
 // Populates |blocks| with tiles by converting to world coordinates
 // and the calculating the tile in world coordinates.
@@ -791,76 +697,6 @@ function tileIsSolid(tile) {
 	return tile == SOLID_BLOCK || tile == INVISIBLE_BLOCK;
 }
 
-function projectOut(blocks) {
-  var width = 0.3;
-
-
-  for (var projection_iteration = 0; projection_iteration < 6; projection_iteration++) {
-    var pushed = false;
-
-    var mz = Math.floor(pz - width);
-    var Mz = Math.floor(pz + width);
-    var mx = Math.floor(px - width);
-    var Mx = Math.floor(px + width);
-    var my = Math.floor(py - width);
-    var My = Math.floor(py + width);
-
-    l = []
-    for (var iz = mz; iz <= Mz; iz+=1) {
-    for (var ix = mx; ix <= Mx; ix+=1) {
-    for (var iy = my; iy <= My; iy+=1) {
-      l.push({distance: Math.abs(iz + 0.5 - pz) + Math.abs(ix + 0.5 - px) + Math.abs(iy + 0.5 - py), value:[iz,ix,iy]});
-    }}}
-
-    l.sort(function(a, b){return a.distance - b.distance});
-    l = l.map(function(a){return a.value});
-
-    for (var i = 0; i < l.length && !pushed; i+=1) {
-      var z = l[i][0];
-      var x = l[i][1];
-      var y = l[i][2];
-      a = getWorldTile(z, x, y);
-      if (a == SOLID_BLOCK || a == INVISIBLE_BLOCK) {
-        // A block can push out of any exposed surface. Out of these directions, we pick the smallest displacement.
-        var z_plus_move  = tileIsSolid(getWorldTile(z+1, x,   y  )) ?  10 : z + 1 + width - pz;
-        var z_minus_move = tileIsSolid(getWorldTile(z-1, x,   y  )) ? -10 : z     - width - pz;
-        var x_plus_move  = tileIsSolid(getWorldTile(z,   x+1, y  )) ?  10 : x + 1 + width - px;
-        var x_minus_move = tileIsSolid(getWorldTile(z,   x-1, y  )) ? -10 : x     - width - px;
-        var y_plus_move  = tileIsSolid(getWorldTile(z,   x,   y+1)) ?  10 : y + 1 + width - py;
-        var y_minus_move = tileIsSolid(getWorldTile(z,   x,   y-1)) ? -10 : y     - width - py;
-        var z_off = z_plus_move < -z_minus_move ? z_plus_move : z_minus_move;
-        var x_off = x_plus_move < -x_minus_move ? x_plus_move : x_minus_move;
-        var y_off = y_plus_move < -y_minus_move ? y_plus_move : y_minus_move;
-        if (Math.abs(z_off) > 9 && Math.abs(x_off) > 9 && Math.abs(y_off) > 9) {
-        	continue;
-        }
-        if (Math.abs(z_off) < Math.abs(x_off) && Math.abs(z_off) < Math.abs(y_off)) {
-          pz += z_off;
-          pvz = 0.0;
-          if (z_off != 0.0) {
-            pushed = true;
-          }
-        } else if (Math.abs(x_off) < Math.abs(y_off)) {
-          px += x_off;
-          pvx = 0.0;
-          if (x_off != 0.0) {
-            pushed = true;
-          }
-        } else {
-          py += y_off;
-          pvy = 0.0;
-          if (y_off != 0.0) {
-            pushed = true;
-          }
-        }
-      }
-    }
-    if (pushed == false) {
-      break;
-    }
-  }
-}
-
 function auto_resize() {
   var displayText = document.getElementById('active-text');
   w = Math.round(displayText.offsetWidth / 8) + 14;
@@ -872,73 +708,6 @@ function auto_resize() {
   }
   handle2DBufferDimensionChange(w, h);
   return displayChanged;
-}
-
-function physics_update() {
-  // Gravity
-  pvz += -0.1;
-
-  // User input
-  var a = 0.1;
-  if (keyStates["A"] === true) {
-    pvx += a;
-  }
-  if (keyStates["D"] === true) {
-    pvx -= a;
-  }
-  if (keyStates["W"] === true) {
-    pvy -= a;
-  }
-  if (keyStates["S"] === true) {
-    pvy += a;
-  }
-  if (keyStates["J"] === true) {
-    pvz += 2 * a;
-  }
-
-  // Velocity decay
-  if (!keyStates["A"] && !keyStates["D"] && !keyStates["W"] && !keyStates["S"] && !keyStates["J"]) {
-    pvx *= 0.9;
-    pvy *= 0.9;
-    pvz *= 0.9;
-  }
-
-  // Velocity cap
-  var max_speed = 4.5;
-
-  if (pvz >= max_speed) {
-    pvz = max_speed;
-  }
-  if (pvz <= -max_speed) {
-    pvz = -max_speed;
-  }
-
-  if (pvx >= max_speed) {
-    pvx = max_speed;
-  }
-  if (pvx <= -max_speed) {
-    pvx = -max_speed;
-  }
-
-  if (pvy >= max_speed) {
-    pvy = max_speed;
-  }
-  if (pvy <= -max_speed) {
-    pvy = -max_speed;
-  }
-
-
-
-  // Split large motion into many small motions.
-  mini_vx = pvx / 10;
-  mini_vy = pvy / 10;
-  mini_vz = pvz / 10;
-  for (var _ = 0; _ < 10; ++_) {
-    px += mini_vx;
-    py += mini_vy;
-    pz += mini_vz;
-    projectOut(blocks);
-  }
 }
 
 // Note that this involves a reordering.
@@ -960,81 +729,317 @@ function horizontalCorrection(x, y , z) {
   return Math.floor(3 * (x - Math.floor(x))) - Math.floor(2 * (y - Math.floor(y)));
 }
 
-// Convert float coordinates in to integer values, and update the camera.
-function update_discrete_coordinates() {
+class Level {
+  constructor() {
+    // Fine-grained offset of player from their cube coordinate, used to enable sub-
+    // block-sized motion.
+    this.horizontal_player_correction = 0; // should be 0, 1  or 2
+    this.vertical_player_correction = 0;
 
-  // Note that camera contraints need to align with fine rendering, which probably(?) means they need to be integers.
-  if (cz - pz > 3.0) {
-    cz = pz + 3.0;
-  } else if (cz - pz < -5.0) {
-    cz = pz - 5.0;
+    // Fine-grained offset of camera from their cube coordinate, used to enable sub-
+    // block-sized motion.
+    this.horizontal_camera_correction = 0; // should be 0, 1  or 2
+    this.vertical_camera_correction = 0;
+
+    // Float coordinates of the user relative to the world coordinates.
+    this.px = 0.0;
+    this.py = 0.0;
+    this.pz = 10.0;
+
+    // Float coordinates of the camera relative to the world coordinates.
+    this.cx = this.px;
+    this.cy = this.py;
+    this.cz = this.pz;
+
+    // Velocity of the user.
+    this.pvx = 0.02;
+    this.pvy = 0.02;
+    this.pvz = 0.0;
+
+    // This is the (block) coordinate of the player in world coordinates.
+    this.playerpos = [HEIGHT -1 /* z */, 0 /* x */, 0 /* y */];
+    // This is the (block) coordinate of the camera in world coordinates.
+    this.camerapos = [0,0,0]
+
+    this.sortedCoordinates = this.getSortedCoordinatesFromConnectedComponent(2, 0, 0);
   }
-  if (cx - px > 3.0) {
-    cx = px + 3.0;
-  } else if (cx - px < -3.0) {
-    cx = px - 3.0;
+
+  physics_update() {
+    // Gravity
+    this.pvz += -0.1;
+
+    // User input
+    var a = 0.1;
+    if (keyStates["A"] === true) {
+      this.pvx += a;
+    }
+    if (keyStates["D"] === true) {
+      this.pvx -= a;
+    }
+    if (keyStates["W"] === true) {
+      this.pvy -= a;
+    }
+    if (keyStates["S"] === true) {
+      this.pvy += a;
+    }
+    if (keyStates["J"] === true) {
+      this.pvz += 2 * a;
+    }
+
+    // Velocity decay
+    if (!keyStates["A"] && !keyStates["D"] && !keyStates["W"] && !keyStates["S"] && !keyStates["J"]) {
+      this.pvx *= 0.9;
+      this.pvy *= 0.9;
+      this.pvz *= 0.9;
+    }
+
+    // Velocity cap
+    var max_speed = 4.5;
+
+    if (this.pvz >= max_speed) {
+      this.pvz = max_speed;
+    }
+    if (this.pvz <= -max_speed) {
+      this.pvz = -max_speed;
+    }
+
+    if (this.pvx >= max_speed) {
+      this.pvx = max_speed;
+    }
+    if (this.pvx <= -max_speed) {
+      this.pvx = -max_speed;
+    }
+
+    if (this.pvy >= max_speed) {
+      this.pvy = max_speed;
+    }
+    if (this.pvy <= -max_speed) {
+      this.pvy = -max_speed;
+    }
+
+
+
+    // Split large motion into many small motions.
+    var mini_vx = this.pvx / 10;
+    var mini_vy = this.pvy / 10;
+    var mini_vz = this.pvz / 10;
+    for (var _ = 0; _ < 10; ++_) {
+      this.px += mini_vx;
+      this.py += mini_vy;
+      this.pz += mini_vz;
+      this.projectOut(blocks);
+    }
   }
-  if (cy - py > 3.0) {
-    cy = py + 3.0;
-  } else if (cy - py < -3.0) {
-    cy = py - 3.0;
+
+  projectOut(blocks) {
+    var width = 0.3;
+
+
+    for (var projection_iteration = 0; projection_iteration < 6; projection_iteration++) {
+      var pushed = false;
+
+      var mz = Math.floor(this.pz - width);
+      var Mz = Math.floor(this.pz + width);
+      var mx = Math.floor(this.px - width);
+      var Mx = Math.floor(this.px + width);
+      var my = Math.floor(this.py - width);
+      var My = Math.floor(this.py + width);
+
+      var l = []
+      for (var iz = mz; iz <= Mz; iz+=1) {
+      for (var ix = mx; ix <= Mx; ix+=1) {
+      for (var iy = my; iy <= My; iy+=1) {
+        l.push({distance: Math.abs(iz + 0.5 - this.pz) + Math.abs(ix + 0.5 - this.px) + Math.abs(iy + 0.5 - this.py), value:[iz,ix,iy]});
+      }}}
+
+      l.sort(function(a, b){return a.distance - b.distance});
+      l = l.map(function(a){return a.value});
+
+      for (var i = 0; i < l.length && !pushed; i+=1) {
+        var z = l[i][0];
+        var x = l[i][1];
+        var y = l[i][2];
+        let a = this.getWorldTile(z, x, y);
+        if (a == SOLID_BLOCK || a == INVISIBLE_BLOCK) {
+          // A block can push out of any exposed surface. Out of these directions, we pick the smallest displacement.
+          var z_plus_move  = tileIsSolid(this.getWorldTile(z+1, x,   y  )) ?  10 : z + 1 + width - this.pz;
+          var z_minus_move = tileIsSolid(this.getWorldTile(z-1, x,   y  )) ? -10 : z     - width - this.pz;
+          var x_plus_move  = tileIsSolid(this.getWorldTile(z,   x+1, y  )) ?  10 : x + 1 + width - this.px;
+          var x_minus_move = tileIsSolid(this.getWorldTile(z,   x-1, y  )) ? -10 : x     - width - this.px;
+          var y_plus_move  = tileIsSolid(this.getWorldTile(z,   x,   y+1)) ?  10 : y + 1 + width - this.py;
+          var y_minus_move = tileIsSolid(this.getWorldTile(z,   x,   y-1)) ? -10 : y     - width - this.py;
+          var z_off = z_plus_move < -z_minus_move ? z_plus_move : z_minus_move;
+          var x_off = x_plus_move < -x_minus_move ? x_plus_move : x_minus_move;
+          var y_off = y_plus_move < -y_minus_move ? y_plus_move : y_minus_move;
+          if (Math.abs(z_off) > 9 && Math.abs(x_off) > 9 && Math.abs(y_off) > 9) {
+            continue;
+          }
+          if (Math.abs(z_off) < Math.abs(x_off) && Math.abs(z_off) < Math.abs(y_off)) {
+            this.pz += z_off;
+            this.pvz = 0.0;
+            if (z_off != 0.0) {
+              pushed = true;
+            }
+          } else if (Math.abs(x_off) < Math.abs(y_off)) {
+            this.px += x_off;
+            this.pvx = 0.0;
+            if (x_off != 0.0) {
+              pushed = true;
+            }
+          } else {
+            this.py += y_off;
+            this.pvy = 0.0;
+            if (y_off != 0.0) {
+              pushed = true;
+            }
+          }
+        }
+      }
+      if (pushed == false) {
+        break;
+      }
+    }
   }
 
-  playerpos = toTileCoordinate(px, py, pz);
-  camerapos = toTileCoordinate(cx, cy, cz);
+  /*
+  Modify this function to change the level
+  */
+  getWorldTile(z,x,y) {
+    if (z === this.playerpos[0] && x === this.playerpos[1] && y === this.playerpos[2]) {
+      return PLAYER;
+    }
 
-  vertical_player_correction = verticalCorrection(px, py, pz);
-  horizontal_player_correction = horizontalCorrection(px, py, pz);
+    var output = EMPTY;
+    if (LEVEL == WETLANDS) {
+      return getWetlandTile(z, x, y);
+    } else if (LEVEL == SPINNING_SECTORS) {
+      return getSpinningSectorsTile(z, x, y);
+    } else if (LEVEL == RECTANGLES) {
+      return getRectanglesLevelTile(z, x, y);
+    } else if (LEVEL == CUBE_FRAME) {
+      return getCubeFrameTile(z, x, y);
+    } else if (LEVEL == INTRO) {
+      return getIntroTile(z, x, y);
+    } else {
+      assert(false);
+    }
+  }
 
-  vertical_camera_correction = verticalCorrection(cx, cy, cz);
-  horizontal_camera_correction = horizontalCorrection(cx, cy, cz);
+  getTile(z,x,y) {
+    return this.getWorldTile(z-offsetZ, x-offsetX, y-offsetY);
+  }
+
+  // Convert float coordinates in to integer values, and update the camera.
+  update_discrete_coordinates() {
+
+    // Note that camera contraints need to align with fine rendering, which probably(?) means they need to be integers.
+    if (this.cz - this.pz > 3.0) {
+      this.cz = this.pz + 3.0;
+    } else if (this.cz - this.pz < -5.0) {
+      this.cz = this.pz - 5.0;
+    }
+    if (this.cx - this.px > 3.0) {
+      this.cx = this.px + 3.0;
+    } else if (this.cx - this.px < -3.0) {
+      this.cx = this.px - 3.0;
+    }
+    if (this.cy - this.py > 3.0) {
+      this.cy = this.py + 3.0;
+    } else if (this.cy - this.py < -3.0) {
+      this.cy = this.py - 3.0;
+    }
+
+    this.playerpos = toTileCoordinate(this.px, this.py, this.pz);
+    this.camerapos = toTileCoordinate(this.cx, this.cy, this.cz);
+
+    this.vertical_player_correction = verticalCorrection(this.px, this.py, this.pz);
+    this.horizontal_player_correction = horizontalCorrection(this.px, this.py, this.pz);
+
+    this.vertical_camera_correction = verticalCorrection(this.cx, this.cy, this.cz);
+    this.horizontal_camera_correction = horizontalCorrection(this.cx, this.cy, this.cz);
+  }
+
+  getSortedCoordinatesFromConnectedComponent(z, x, y) {
+    var found_coordinate = {};
+    var coordinates = [];
+    coordinates.push([z, x, y]);
+    found_coordinate[keyForCoord(z,x,y)] = true;
+    for (var queue_index = 0; queue_index < coordinates.length; queue_index++) {
+      if (queue_index > 10000) {
+        console.log("Infinite loop? Breaking");
+        break;
+      }
+      var coord = coordinates[queue_index];
+      for (var dz = -1; dz <= 1; dz++) {
+      for (var dx = -1; dx <= 1; dx++) {
+      for (var dy = -1; dy <= 1; dy++) {
+        // neighboring coordinate
+        var nz = coord[0] + dz;
+        var nx = coord[1] + dx;
+        var ny = coord[2] + dy;
+        var tile = this.getWorldTile(nz, nx, ny);
+        if (tileIsVisible(tile)) {
+          var coord_string = keyForCoord(nz, nx, ny);
+          if (found_coordinate[coord_string] !== true) {
+            coordinates.push([nz, nx, ny]);
+            found_coordinate[coord_string] = true;
+          }
+        }
+      }
+      }
+      }
+    }
+    console.log("Sorted coordinates have length " + coordinates.length);
+    return coordinates.sort(coordinateComparison);
+  }
 }
 
+// Singleton class for managing the entire flow.
 class Game {
-  constructor(blocks, sortedCoordinates) {
+  constructor(blocks) {
     this.blocks = blocks;
-    this.sortedCoordinates = sortedCoordinates;
+    this.level = new Level();
   }
 
   update_loop() {
     var displayChanged = auto_resize();
 
-    var oldpos = playerpos.slice(0);
+    var oldpos = this.level.playerpos.slice(0);
     var oldoffset = [offsetZ, offsetX, offsetY];
-    var old_horizontal_player_correction = horizontal_player_correction;
-    var old_vertical_player_correction = vertical_player_correction;
+    var old_horizontal_player_correction = this.level.horizontal_player_correction;
+    var old_vertical_player_correction = this.level.vertical_player_correction;
 
     // Position and velocity update
     if (LEVEL != SPINNING_SECTORS) {
-      physics_update();
-      update_discrete_coordinates();
+      this.level.physics_update();
+      this.level.update_discrete_coordinates();
     }
 
 
     if (LEVEL == SPINNING_SECTORS) {
-      playerpos = [0,0,0];
+      this.level.playerpos = [0,0,0];
       offsetZ = z_center;
       offsetX = x_center;
       offsetY = y_center;
     } else {
-      offsetZ = 6 - camerapos[0];
-      offsetY = 30 - camerapos[2];
-      offsetX = 35 - camerapos[1];
+      offsetZ = 6 - this.level.camerapos[0];
+      offsetY = 30 - this.level.camerapos[2];
+      offsetX = 35 - this.level.camerapos[1];
     }
 
     // Detect if redraw is necessary. Checking for camera changes is unnecessary since all camera changes are induced by
     // player position changes.
-    var positionChanged = oldpos[0] != playerpos[0] || oldpos[1] != playerpos[1] || oldpos[2] != playerpos[2];
+    var positionChanged = oldpos[0] != this.level.playerpos[0] || oldpos[1] != this.level.playerpos[1] || oldpos[2] != this.level.playerpos[2];
     var offsetChanged = offsetZ != oldoffset[0] || offsetX != oldoffset[1] || offsetY != oldoffset[2];
-    var horizontal_player_correction_changed = horizontal_player_correction != old_horizontal_player_correction;
-    var vertical_player_correction_changed = vertical_player_correction != old_vertical_player_correction;
+    var horizontal_player_correction_changed = this.level.horizontal_player_correction != old_horizontal_player_correction;
+    var vertical_player_correction_changed = this.level.vertical_player_correction != old_vertical_player_correction;
     var needRedraw = positionChanged || offsetChanged || vertical_player_correction_changed || horizontal_player_correction_changed || (LEVEL==SPINNING_SECTORS) || displayChanged || force_redraw;
 
     force_redraw = false;
 
 
     if (needRedraw) {
-      render(this.sortedCoordinates, lines, horizontal_camera_correction, vertical_camera_correction, playerpos.slice(0), horizontal_player_correction, vertical_player_correction);
+      render(lines, this.level);
       setString(document.getElementById('active-text'), lines);
     }
     var that = this;
