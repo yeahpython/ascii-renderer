@@ -688,7 +688,7 @@ function tileIsSolid(tile) {
 	return tile == SOLID_BLOCK || tile == INVISIBLE_BLOCK;
 }
 
-function auto_resize() {
+function autoResize() {
   var displayText = document.getElementById('active-text');
   w = Math.round(displayText.offsetWidth / 8) + 14;
   h = Math.round(displayText.offsetHeight / 16) + 14;
@@ -757,7 +757,7 @@ class Level {
     this.sortedCoordinates = this.getSortedCoordinatesFromConnectedComponent(2, 0, 0);
   }
 
-  physics_update() {
+  physicsUpdate() {
     // Gravity
     this.pvz += -0.1;
 
@@ -924,7 +924,7 @@ class Level {
   }
 
   // Convert float coordinates in to integer values, and update the camera.
-  update_discrete_coordinates() {
+  updateDiscreteCoordinates() {
 
     // Note that camera contraints need to align with fine rendering, which probably(?) means they need to be integers.
     if (this.cz - this.pz > 3.0) {
@@ -995,8 +995,8 @@ class Level {
 
     // Position and velocity update
     if (this.map_id != SPINNING_SECTORS) {
-      this.physics_update();
-      this.update_discrete_coordinates();
+      this.physicsUpdate();
+      this.updateDiscreteCoordinates();
     }
 
 
@@ -1029,8 +1029,8 @@ class Game {
     this.level = level;
   }
 
-  update_loop() {
-    var displayChanged = auto_resize();
+  updateLoop() {
+    var displayChanged = autoResize();
 
     var level_changed = this.level.update();
 
@@ -1045,7 +1045,7 @@ class Game {
     }
     var that = this;
     window.requestAnimationFrame(function() {
-      that.update_loop();
+      that.updateLoop();
     });
   }
 
@@ -1056,7 +1056,7 @@ class Game {
 
 function initialize() {
   blocks = generateBlockArray(HEIGHT, WIDTH, DEPTH);
-  auto_resize();
+  autoResize();
   var level = new Level(INTRO);
   var game = new Game(blocks, level);
 
@@ -1072,6 +1072,6 @@ function initialize() {
     }
   }, false);
 
-  game.update_loop();
+  game.updateLoop();
 
 }
