@@ -124,11 +124,8 @@ function handle2DBufferDimensionChange(w, h){
   	console.log("You're going to have a bad time...");
   }
   sortedCoordinates = getSortedCoordinatesFromConnectedComponent(2, 0, 0);
-  // sortedCoordinates = getSortedCoordinates(blocks);
   resizeBuffers();
 };
-
-// handle2DBufferDimensionChange(139, 49);
 
 function keyForCoord(z, x, y) {
 	return z.toString() + " " + x.toString() + " " + y.toString();
@@ -227,7 +224,6 @@ function render(blocks, sortedCoordinates) {
   var X = RENDERING_BASEPOINT_X + render_x_offset; // rightward shift of basepoint
   var Y = RENDERING_BASEPOINT_Y + render_z_offset; // downward shift of basepoint
   clear(lines);
-  /*setAll(depthBuffer, -1);*/
 
   // Extra coordinates to be injected into the loop. Should be sorted in the
   // same way as sortedCoordinates.
@@ -277,46 +273,15 @@ function render(blocks, sortedCoordinates) {
 
     var hasYXBehindNeighbor = getWorldTile(z, x-1, y-1) == SOLID_BLOCK;
 
-    //var hasXPlusYPlusNeighbor = (x+1 < WIDTH) && (y+1 < DEPTH) $$ ( blocks[z][x+1][y+1] == 1);
-
     // World coordinates -> "block" coordinates -> Screen coordinates
     var YY = Y -2*(z + offsetZ)                  +   (y + offsetY);
     var XX = X                  -3*(x + offsetX) + 2*(y + offsetY);
-
-
-    // if (YY + 3 > lines.length) {
-    //   throw RangeError("index " + (YY+3) +" out of range.");
-    // }
 
     if (YY < 0 || YY + 3 >= VIEWPORT_HEIGHT || XX <= 0 || XX + 4 > VIEWPORT_WIDTH) {
       continue;
     }
     var tile = getWorldTile(z, x, y);
     if (tile == SOLID_BLOCK){
-      /*depthBuffer[YY][XX] = depth;
-      depthBuffer[YY][XX + 1] = depth;
-      depthBuffer[YY][XX+2] = depth;
-
-      depthBuffer[YY+1][XX-1] = depth;
-      depthBuffer[YY+1][XX  ] = depth;
-      depthBuffer[YY+1][XX+1] = depth;
-      depthBuffer[YY+1][XX+2] = depth;
-      depthBuffer[YY+1][XX+3] = depth;
-
-      depthBuffer[YY+2][XX-1] = depth;
-      depthBuffer[YY+2][XX  ] = depth;
-      depthBuffer[YY+2][XX+1] = depth;
-      depthBuffer[YY+2][XX+2] = depth;
-      depthBuffer[YY+2][XX+3] = depth;
-      depthBuffer[YY+2][XX+4] = depth;
-
-      depthBuffer[YY+3][XX-1] = depth;
-      depthBuffer[YY+3][XX  ] = depth;
-      depthBuffer[YY+3][XX+1] = depth;
-      depthBuffer[YY+3][XX+2] = depth;
-      depthBuffer[YY+3][XX+3] = depth;
-      depthBuffer[YY+3][XX+4] = depth;*/
-
 
       //   -101234
       // 0   __
@@ -362,7 +327,7 @@ function render(blocks, sortedCoordinates) {
       } else{
         lines[YY + 2][XX + 4] = "|";
       }
-      lines[YY + 3][XX]     = (hasZNeighbor && !hasZXNeighbor) ? " " : "\\"; //should be " " and "\\"
+      lines[YY + 3][XX]     = (hasZNeighbor && !hasZXNeighbor) ? " " : "\\";
       lines[YY + 3][XX + 1] = "|";
       if (hasZNeighbor && !hasZYNeighbor) {
         lines[YY + 3][XX + 2] = " ";
@@ -383,17 +348,7 @@ function render(blocks, sortedCoordinates) {
         lines[YY + 3][XX + 4] = "|";
       }
     } else if (tile == STREET_LIGHT){
-
-      /*depthBuffer[YY + 1][XX + 2] = depth;
-      depthBuffer[YY + 1][XX + 3] = depth;
-      depthBuffer[YY + 1][XX + 4] = depth;
-      depthBuffer[YY + 2][XX + 2] = depth;
-      depthBuffer[YY + 2][XX + 3] = depth;
-      depthBuffer[YY + 2][XX + 4] = depth;
-      depthBuffer[YY + 3][XX + 2] = depth;
-      depthBuffer[YY + 3][XX + 3] = depth;
-      depthBuffer[YY + 3][XX + 4] = depth;*/
-      var distance = /*Math.abs(z - playerpos[0] - offsetZ) + */Math.max(Math.abs(playerpos[1] - x), Math.abs(playerpos[2] - y));
+      var distance = Math.max(Math.abs(playerpos[1] - x), Math.abs(playerpos[2] - y));
 
 
       var height = 0;
@@ -412,10 +367,7 @@ function render(blocks, sortedCoordinates) {
       // }
       var bright = close;// && (Math.sin(new Date().getTime() * 3.14 / 300 - z / 2) > 0.0);
 
-      // lines[YY + 1][XX + 2] = " ";
-      //lines[YY + 1][XX + 3] = "<span style = \"color:yellow\">*</span>";
       lines[YY + 1][XX + 3] = bright ? "<span style = \"color:white\">!</span>" : "?";
-      // lines[YY + 1][XX + 4] = " ";
       if (bright && getWorldTile(z + 1, x, y) != STREET_LIGHT && getWorldTile(z + 1, x, y) != PLAYER) {
         var msg = level_messages[LEVEL](z, x, y );
         for (var row = 0; row < msg.length; row++) {
@@ -429,76 +381,16 @@ function render(blocks, sortedCoordinates) {
         }
       }
 
-
-      // lines[YY + 2][XX + 2] = " ";
       lines[YY + 2][XX + 3] = bright ? "<span style = \"color:white\">|</span>" : ".";
-      // lines[YY + 2][XX + 4] = " ";
-      // lines[YY + 3][XX + 2] = " ";
       lines[YY + 3][XX + 3] = bright ? "<span style = \"color:white\">|</span>" : ".";
-      // lines[YY + 3][XX + 4] = " ";
     } else if (tile == WAVE){
-        //lines[YY+2][XX-1] = "~";
-        //lines[YY+2][XX+0] = "<span style = \"color:blue\">s</span>";
-        //lines[YY+2][XX+1] = "<span style = \"color:blue\">e</span>";
-        //lines[YY+2][XX+2] = "<span style = \"color:blue\">a</span>";
-
         lines[YY+2][XX+0] = "~";
         lines[YY+2][XX+1] = "~";
         lines[YY+2][XX+2] = "~";
-
-        //lines[YY+2][XX+1] = "<span style = \"color:cyan\">~</span>";
-        //lines[YY+2][XX+3] = "~";
       }
     else {
       // Render the player
       lines[YY + 2 - vertical_player_correction][XX + 0 + 2 - horizontal_player_correction] = "<span style = \"color:white\">" + ( (pvx - 0.66 * pvy) > 0.15 ? "\\" : ((pvx - 0.66 * pvy) < -0.15 ? "/" : "|")) + "</span>";
-      // lines[YY + 2 - vertical_player_correction][XX + 1 + 2 - horizontal_player_correction] = "<span style = \"color:white\">o</span>";
-      // lines[YY + 2 - vertical_player_correction][XX + 2 + 2 - horizontal_player_correction] = "<span style = \"color:white\">u</span>";
-
-      //lines[YY + 2][XX + 0] = "<span style = \"color:#00FF00; background-color:black\">y</span>";
-      //lines[YY + 2][XX + 1] = "<span style = \"color:#00FF00; background-color:black\">o</span>";
-      //lines[YY + 2][XX + 2] = "<span style = \"color:#00FF00; background-color:black\">u</span>";
-
-
-      // lines[YY + 2][XX + 0] = "<span style = \"color:#C3834C; background-color:black\">d</span>";
-      // lines[YY + 2][XX + 1] = "<span style = \"color:#C3834C; background-color:black\">o</span>";
-      // lines[YY + 2][XX + 2] = "<span style = \"color:#C3834C; background-color:black\">g</span>";
-
-      /*
-      for (var u = -2; u < 3; u++) {
-        for (var v = -4; v < 5; v++) {
-          var distance = Math.abs(horizontal_player_correction - v - (3 * (px - Math.floor(px)) - 2 * (py - Math.floor(py)))) / 1.5 +
-                         Math.abs(vertical_player_correction - u - (2 * (pz - Math.floor(pz)) - (py - Math.floor(py))));
-          var symbol = " ";
-          if (distance <= 1.5) {
-            symbol = "+";
-          } else if (distance <= 3.5) {
-            symbol = "-";
-          }
-          if (symbol != " ") {
-            //lines[YY + 2 - vertical_player_correction + u][XX + 2 - horizontal_player_correction + v] = "<span style = \"color:#C3834C; background-color:black\">"+symbol+"</span>";
-           lines[YY + 2 - vertical_player_correction + u][XX + 2 - horizontal_player_correction + v] = symbol;
-          }
-        }
-      }
-      */
-
-
-      // lines[YY][XX+1] = "*";
-      // lines[YY+1][XX-1] = "_";
-      // lines[YY+1][XX] = "/";
-      // lines[YY+1][XX+1] = "|";
-      // lines[YY+1][XX+2] = "\\";
-      // lines[YY+1][XX+3] = "_";
-
-      // lines[YY+2][XX] = "/";
-      // lines[YY+2][XX+1] = "\\";
-
-      // lines[YY+3][XX-1] = "_";
-      // lines[YY+3][XX] = "|";
-      // lines[YY+3][XX+2] = "\\";
-      // lines[YY+3][XX+3] = "_";
-
     }
   }
 }
@@ -848,8 +740,6 @@ function getWorldTile(z,x,y) {
   if (z === playerpos[0] && x === playerpos[1] && y === playerpos[2]) {
   	return PLAYER;
   }
-  //var t = 0;
-  //height =/* - 0.2*(x-offsetX) - 0.2*(y-offsetY) */ + Math.sin(t * 0.005 + (x - offsetX) * 0.04) * 2 + Math.sin( (y - offsetY) * 0.04)*2;
   var output = EMPTY;
   if (LEVEL == WETLANDS) {
     return getWetlandTile(z, x, y);
@@ -890,19 +780,6 @@ function tryToMovePlayer(dz, dx, dy) {
     blocks[z][x][y] = 2;
   }
 }
-/*
-function tryToMovePlayer(dz, dx, dy) {
-  newpos = [playerpos[0] + dz, playerpos[1] + dx, playerpos[2] + dy]
-  if (0 <= newpos[0] && newpos[0] < HEIGHT && 0 <= newpos[1] && newpos[1] < WIDTH && 0<= newpos[2] && newpos[2] < DEPTH) {
-    if (blocks[newpos[0]][newpos[1]][newpos[2]] % 2 == 0 )
-    {
-      blocks[newpos[0]][newpos[1]][newpos[2]] = blocks[playerpos[0]][playerpos[1]][playerpos[2]];
-      blocks[playerpos[0]][playerpos[1]][playerpos[2]] = 0;
-      playerpos = newpos;
-    }
-  }
-}
-*/
 
 function tileIsSolid(tile) {
 	return tile == SOLID_BLOCK || tile == INVISIBLE_BLOCK;
@@ -938,9 +815,7 @@ function projectOut(blocks) {
       var y = l[i][2];
       a = getWorldTile(z, x, y);
       if (a == SOLID_BLOCK || a == INVISIBLE_BLOCK) {
-        // push in minimum valid direction
-        //console.log(pz, px, py);
-        //console.log(mz, Mz, mx, Mx, my, My);
+        // A block can push out of any exposed surface. Out of these directions, we pick the smallest displacement.
         var z_plus_move  = tileIsSolid(getWorldTile(z+1, x,   y  )) ?  10 : z + 1 + width - pz;
         var z_minus_move = tileIsSolid(getWorldTile(z-1, x,   y  )) ? -10 : z     - width - pz;
         var x_plus_move  = tileIsSolid(getWorldTile(z,   x+1, y  )) ?  10 : x + 1 + width - px;
@@ -953,7 +828,6 @@ function projectOut(blocks) {
         if (Math.abs(z_off) > 9 && Math.abs(x_off) > 9 && Math.abs(y_off) > 9) {
         	continue;
         }
-        // console.log(z, x, y, playerpos, x_off, y_off, z_off);
         if (Math.abs(z_off) < Math.abs(x_off) && Math.abs(z_off) < Math.abs(y_off)) {
           pz += z_off;
           pvz = 0.0;
@@ -961,7 +835,6 @@ function projectOut(blocks) {
             pushed = true;
           }
         } else if (Math.abs(x_off) < Math.abs(y_off)) {
-          // console.log(pz, px, py, playerpos);
           px += x_off;
           pvx = 0.0;
           if (x_off != 0.0) {
@@ -980,33 +853,6 @@ function projectOut(blocks) {
       break;
     }
   }
-
-  /*sif (pz < 1.3) {
-    pz = 1.3;
-    pvz = 0.0;
-  }*/
-
-  /*if (a % 2 == 1) {
-    var z_rem = (pz - ~~pz);
-    var x_rem = (px - ~~px);
-    var y_rem = (py - ~~py);
-    var z_off = 1.0 - z_rem;// Always push up
-    var x_off = x_rem > 0.5 ? 1 - x_rem : - x_rem;
-    var y_off = y_rem > 0.5 ? 1 - y_rem : - y_rem;
-    if (Math.abs(z_off) < Math.abs(x_off) && Math.abs(z_off) < Math.abs(y_off)) {
-      pz += z_off;
-      pvz = 0.0;
-      console.log("pushed vertically");
-    } else if (Math.abs(x_off) < Math.abs(y_off)) {
-      px += x_off;
-      pvx = 0.0;
-      console.log("pushed in x direction");
-    } else {
-      py += y_off;
-      pvy = 0.0;
-      console.log("pushed in y direction");
-    }
-  }*/
 }
 
 function auto_resize() {
@@ -1023,7 +869,10 @@ function auto_resize() {
 }
 
 function physics_update() {
+  // Gravity
   pvz += -0.1;
+
+  // User input
   var a = 0.1;
   if (keyStates[0]) { // A
     pvx += a;
@@ -1041,12 +890,14 @@ function physics_update() {
     pvz += 2 * a;
   }
 
+  // Velocity decay
   if (!keyStates[0] && !keyStates[1] && !keyStates[2] && !keyStates[3] && !keyStates[4]) {
     pvx *= 0.9;
     pvy *= 0.9;
     pvz *= 0.9;
   }
 
+  // Velocity cap
   var max_speed = 4.5;
 
   if (pvz >= max_speed) {
@@ -1072,7 +923,7 @@ function physics_update() {
 
 
 
-
+  // Split large motion into many small motions.
   mini_vx = pvx / 10;
   mini_vy = pvy / 10;
   mini_vz = pvz / 10;
@@ -1080,29 +931,30 @@ function physics_update() {
     px += mini_vx;
     py += mini_vy;
     pz += mini_vz;
-    /*if (pz < 2.5) {
-      pz = 2.5;
-    }*/
-
-    // Collision detection and pushing the player out of blocks
     projectOut(blocks);
   }
 }
 
+// Note that this involves a reordering.
 function toTileCoordinate(x, y, z) {
   return [Math.floor(z), Math.floor(x), Math.floor(y)];
 }
 
 // Calculate fine 2D vertical correction in render position from 3D float coordinates.
+// Note that we consider the various coordinates independently, since combining them
+// results in jitter.
 function verticalCorrection(x, y, z) {
   return Math.floor(2 * (z - Math.floor(z))) - Math.floor((y - Math.floor(y)));
 }
 
 // Calculate fine 2D horizontal correction in render position from 3D float coordinates.
+// Note that we consider the various coordinates independently, since combining them
+// results in jitter.
 function horizontalCorrection(x, y , z) {
   return Math.floor(3 * (x - Math.floor(x))) - Math.floor(2 * (y - Math.floor(y)));
 }
 
+// Convert float coordinates in to integer values, and update the camera.
 function update_discrete_coordinates() {
 
   // Note that camera contraints need to align with fine rendering, which probably(?) means they need to be integers.
@@ -1170,24 +1022,9 @@ function update(blocks, sortedCoordinates) {
 
 
   if (needRedraw) {
-    // setWaves(blocks, sortedCoordinates);
-
-    if (1 || offsetChanged) {
-      // try {
-        //console.log(playerpos[0], playerpos[1], playerpos[2]);
-        blocks[playerpos[0] + offsetZ][playerpos[1] + offsetX][playerpos[2]+offsetY] = 2;
-        render(blocks, sortedCoordinates);
-      // } catch (e){
-      //   console.log(e.message);
-      // } finally {
-      // }
-      // renderBuffer should contain a map of the non-player environment here.
-    } else {
-      // old renderBuffer can still be used
-      // clean up lines
-    }
-    // add player here
-      setString();
+    blocks[playerpos[0] + offsetZ][playerpos[1] + offsetX][playerpos[2]+offsetY] = 2;
+    render(blocks, sortedCoordinates);
+    setString();
   }
   window.requestAnimationFrame(function(){
     update(blocks, sortedCoordinates);
