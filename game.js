@@ -493,7 +493,8 @@ function startAnimationLoop() {
     LOOP_ACTIVE = true;
     blocks = generateBlockArray(HEIGHT, WIDTH, DEPTH);
     auto_resize();
-    update(blocks, sortedCoordinates);
+    var game = new Game(blocks, sortedCoordinates);
+    game.update_loop();
   }
 }
 
@@ -989,50 +990,58 @@ function update_discrete_coordinates() {
   horizontal_camera_correction = horizontalCorrection(cx, cy, cz);
 }
 
-function update(blocks, sortedCoordinates) {
-  var displayChanged = auto_resize();
-
-  var oldpos = playerpos.slice(0);
-  var oldoffset = [offsetZ, offsetX, offsetY];
-  var old_horizontal_player_correction = horizontal_player_correction;
-  var old_vertical_player_correction = vertical_player_correction;
-
-  // Position and velocity update
-  if (LEVEL != SPINNING_SECTORS) {
-    physics_update();
-    update_discrete_coordinates();
+class Game {
+  constructor(blocks, sortedCoordinates) {
+    this.blocks = blocks;
+    this.sortedCoordinates = sortedCoordinates;
   }
 
+  update_loop() {
+    var displayChanged = auto_resize();
 
-  if (LEVEL == SPINNING_SECTORS) {
-    playerpos = [0,0,0];
-    offsetZ = z_center;
-    offsetX = x_center;
-    offsetY = y_center;
-  } else {
-    offsetZ = 6 - camerapos[0];
-    offsetY = 30 - camerapos[2];
-    offsetX = 35 - camerapos[1];
+    var oldpos = playerpos.slice(0);
+    var oldoffset = [offsetZ, offsetX, offsetY];
+    var old_horizontal_player_correction = horizontal_player_correction;
+    var old_vertical_player_correction = vertical_player_correction;
+
+    // Position and velocity update
+    if (LEVEL != SPINNING_SECTORS) {
+      physics_update();
+      update_discrete_coordinates();
+    }
+
+
+    if (LEVEL == SPINNING_SECTORS) {
+      playerpos = [0,0,0];
+      offsetZ = z_center;
+      offsetX = x_center;
+      offsetY = y_center;
+    } else {
+      offsetZ = 6 - camerapos[0];
+      offsetY = 30 - camerapos[2];
+      offsetX = 35 - camerapos[1];
+    }
+
+    // Detect if redraw is necessary. Checking for camera changes is unnecessary since all camera changes are induced by
+    // player position changes.
+    var positionChanged = oldpos[0] != playerpos[0] || oldpos[1] != playerpos[1] || oldpos[2] != playerpos[2];
+    var offsetChanged = offsetZ != oldoffset[0] || offsetX != oldoffset[1] || offsetY != oldoffset[2];
+    var horizontal_player_correction_changed = horizontal_player_correction != old_horizontal_player_correction;
+    var vertical_player_correction_changed = vertical_player_correction != old_vertical_player_correction;
+    var needRedraw = positionChanged || offsetChanged || vertical_player_correction_changed || horizontal_player_correction_changed || (LEVEL==SPINNING_SECTORS) || displayChanged || force_redraw;
+
+    force_redraw = false;
+
+
+    if (needRedraw) {
+      render(this.sortedCoordinates, lines, horizontal_camera_correction, vertical_camera_correction, playerpos.slice(0), horizontal_player_correction, vertical_player_correction);
+      setString(document.getElementById('active-text'), lines);
+    }
+    var that = this;
+    window.requestAnimationFrame(function() {
+      that.update_loop();
+    });
   }
-
-  // Detect if redraw is necessary. Checking for camera changes is unnecessary since all camera changes are induced by
-  // player position changes.
-  var positionChanged = oldpos[0] != playerpos[0] || oldpos[1] != playerpos[1] || oldpos[2] != playerpos[2];
-  var offsetChanged = offsetZ != oldoffset[0] || offsetX != oldoffset[1] || offsetY != oldoffset[2];
-  var horizontal_player_correction_changed = horizontal_player_correction != old_horizontal_player_correction;
-  var vertical_player_correction_changed = vertical_player_correction != old_vertical_player_correction;
-  var needRedraw = positionChanged || offsetChanged || vertical_player_correction_changed || horizontal_player_correction_changed || (LEVEL==SPINNING_SECTORS) || displayChanged || force_redraw;
-
-  force_redraw = false;
-
-
-  if (needRedraw) {
-    render(sortedCoordinates, lines, horizontal_camera_correction, vertical_camera_correction, playerpos.slice(0), horizontal_player_correction, vertical_player_correction);
-    setString(document.getElementById('active-text'), lines);
-  }
-  window.requestAnimationFrame(function(){
-    update(blocks, sortedCoordinates);
-  });
 }
 
 function initialize() {
