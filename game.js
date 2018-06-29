@@ -128,7 +128,6 @@ function getSortedCoordinates(blocks){
       }
     }
   }
-  console.log("getSortedCoordinates");
   return coordinates;
 }
 
@@ -638,7 +637,12 @@ function getIntroTile(z, x, y) {
 }
 
 function getTesterTile(z, x, y) {
-  if (Math.abs(x) < 10 && Math.abs(y) < 10 && (Math.abs(x) > 5 || Math.abs(y) > 5)) {
+  d = new Date();
+  if (x * x + y * y + z * z + 20 * Math.sin(0.004 * d.getTime()) < 25) {
+    return SOLID_BLOCK;
+  }
+
+  if (Math.abs(x) < 20 && Math.abs(y) < 20 && (Math.abs(x) > 14 || Math.abs(y) > 14 || x == 0)) {
     if (z == 2) {
       return SOLID_BLOCK;
     } else {
@@ -774,7 +778,7 @@ class Level {
     if (this.map_id === INTRO) {
       this.px = 0.0;
     } else {
-      this.px = 8.0;
+      this.px = 15.0;
     }
     this.py = 0.0;
     this.pz = 10.0;
@@ -798,11 +802,14 @@ class Level {
 
 
     if (this.map_id === INTRO) {
-      let sorted_coordinates = this.getSortedCoordinatesFromConnectedComponent(2, 0, 0);
+      let sorted_coordinates = this.getSortedCoordinatesFromConnectedComponent(3, 0, 0);
       this.getFreshIterator = createIteratorGenerator(sorted_coordinates, this);
     } else {
-      let sorted_coordinates = this.getSortedCoordinatesFromConnectedComponent(2, 8, 8);
-      this.getFreshIterator = createIteratorGenerator(sorted_coordinates, this);
+      this.getFreshIterator = function() {
+        let sorted_coordinates = this.getSortedCoordinatesFromConnectedComponent(2, this.playerpos[1], this.playerpos[2]);
+
+        return createIteratorGenerator(sorted_coordinates, this)();
+      }
     }
   }
 
@@ -989,15 +996,18 @@ class Level {
 
   getSortedCoordinatesFromConnectedComponent(z, x, y) {
     var found_coordinate = {};
-    var coordinates = [];
-    coordinates.push([z, x, y]);
+    var to_search = [];
+    to_search.push([z, x, y]);
     found_coordinate[keyForCoord(z,x,y)] = true;
-    for (var queue_index = 0; queue_index < coordinates.length; queue_index++) {
-      if (queue_index > 10000) {
-        console.log("Infinite loop? Breaking");
+    var selected_coordinates = [];
+    for (var queue_index = 0; queue_index < to_search.length; queue_index++) {
+      if (selected_coordinates.length > 1500) {
         break;
       }
-      var coord = coordinates[queue_index];
+      var coord = to_search[queue_index];
+
+      var candidate_coordinates = [];
+      var is_exposed = false;
       for (var dz = -1; dz <= 1; dz++) {
       for (var dx = -1; dx <= 1; dx++) {
       for (var dy = -1; dy <= 1; dy++) {
@@ -1007,18 +1017,30 @@ class Level {
         var ny = coord[2] + dy;
         var tile = this.getWorldTile(nz, nx, ny);
         if (tileIsVisible(tile)) {
-          var coord_string = keyForCoord(nz, nx, ny);
+          let coord_string = keyForCoord(nz, nx, ny);
           if (found_coordinate[coord_string] !== true) {
-            coordinates.push([nz, nx, ny]);
-            found_coordinate[coord_string] = true;
+            candidate_coordinates.push([nz, nx, ny]);
           }
+        } else if (Math.abs(dz) + Math.abs(dx) + Math.abs(dy) == 1) {
+          is_exposed = true;
         }
       }
       }
       }
+
+      if (is_exposed) {
+        selected_coordinates.push(coord);
+        // console.log("exposed");
+        for (var i = 0; i < candidate_coordinates.length; i++) {
+          to_search.push(candidate_coordinates[i]);
+          let coord_string = keyForCoord(candidate_coordinates[i][0], candidate_coordinates[i][1], candidate_coordinates[i][2]);
+          found_coordinate[coord_string] = true;
+        }
+      } else {
+        // console.log("not exposed", keyForCoord(coord[0], coord[1], coord[2]));
+      }
     }
-    console.log("Sorted coordinates have length " + coordinates.length);
-    return coordinates.sort(coordinateComparison);
+    return selected_coordinates.sort(coordinateComparison);
   }
 
   update() {
@@ -1062,6 +1084,7 @@ class Game {
     this.blocks = blocks;
     this.level = level;
     this.force_redraw = true;
+    this.frame_id = 0;
   }
 
   updateLoop() {
@@ -1069,7 +1092,7 @@ class Game {
 
     var level_changed = this.level.update();
 
-    var needRedraw = level_changed || displayChanged || this.force_redraw;
+    var needRedraw = level_changed || displayChanged || this.force_redraw || !(this.frame_id++ % 2);
 
     this.force_redraw = false;
 
