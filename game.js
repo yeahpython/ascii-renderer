@@ -15,6 +15,7 @@ var SPINNING_SECTORS = 1;
 var RECTANGLES = 2;
 var CUBE_FRAME = 3;
 var INTRO = 4;
+var TESTER = 5;
 
 // Enumeration of block types.
 var EMPTY = 0;
@@ -636,6 +637,16 @@ function getIntroTile(z, x, y) {
   return INVISIBLE_BLOCK;
 }
 
+function getTesterTile(z, x, y) {
+  if (Math.abs(x) < 10 && Math.abs(y) < 10 && (Math.abs(x) > 5 || Math.abs(y) > 5)) {
+    if (z == 2) {
+      return SOLID_BLOCK;
+    } else {
+      return EMPTY;
+    }
+  }
+  return INVISIBLE_BLOCK;
+}
 
 // Populates |blocks| with tiles by converting to world coordinates
 // and the calculating the tile in world coordinates.
@@ -693,6 +704,58 @@ function horizontalCorrection(x, y , z) {
   return Math.floor(3 * (x - Math.floor(x))) - Math.floor(2 * (y - Math.floor(y)));
 }
 
+function getMapFetcher(map_id) {
+  switch (map_id) {
+    case WETLANDS:
+      return getWetlandTile;
+    case SPINNING_SECTORS:
+      return getSpinningSectorsTile;
+    case RECTANGLES:
+      return getRectanglesLevelTile;
+    case CUBE_FRAME:
+      return getCubeFrameTile;
+    case INTRO:
+      return getIntroTile;
+    case TESTER:
+      return getTesterTile;
+    default:
+      console.assert(false);
+  }
+}
+
+function createIteratorGenerator(sorted_coordinates, level) {
+  return function() {
+    // Extra coordinates to be injected into the loop. Should be sorted in the
+    // same way as sorted_coordinates.
+    var extra_coordinates = [level.playerpos.slice(0)];
+
+    var block_index = 0;
+    var extra_index = 0;
+
+    return function() {
+      console.assert(block_index <= sorted_coordinates.length);
+      console.assert(extra_index <= extra_coordinates.length);
+      if (block_index == sorted_coordinates.length && extra_index == extra_coordinates.length) {
+        return null;
+      }
+
+      // This logic basically mixes the two arrays together.
+      if (block_index >= sorted_coordinates.length) {
+        return extra_coordinates[extra_index++].slice(0);
+      } else if (extra_index >= extra_coordinates.length) {
+        return sorted_coordinates[block_index++].slice(0);
+      }
+
+      if (coordinateComparison(extra_coordinates[extra_index], sorted_coordinates[block_index]) < 0) {
+        return extra_coordinates[extra_index++].slice(0);
+      } else {
+        return sorted_coordinates[block_index++].slice(0);
+      }
+
+    }
+  }
+}
+
 class Level {
   constructor(map_id) {
     this.map_id = map_id;
@@ -708,7 +771,11 @@ class Level {
     this.vertical_camera_correction = 0;
 
     // Float coordinates of the user relative to the world coordinates.
-    this.px = 0.0;
+    if (this.map_id === INTRO) {
+      this.px = 0.0;
+    } else {
+      this.px = 8.0;
+    }
     this.py = 0.0;
     this.pz = 10.0;
 
@@ -727,7 +794,16 @@ class Level {
     // This is the (block) coordinate of the camera in world coordinates.
     this.camerapos = [0,0,0]
 
-    this.sortedCoordinates = this.getSortedCoordinatesFromConnectedComponent(2, 0, 0);
+    this.getMapTile = getMapFetcher(this.map_id);
+
+
+    if (this.map_id === INTRO) {
+      let sorted_coordinates = this.getSortedCoordinatesFromConnectedComponent(2, 0, 0);
+      this.getFreshIterator = createIteratorGenerator(sorted_coordinates, this);
+    } else {
+      let sorted_coordinates = this.getSortedCoordinatesFromConnectedComponent(2, 8, 8);
+      this.getFreshIterator = createIteratorGenerator(sorted_coordinates, this);
+    }
   }
 
   physicsUpdate() {
@@ -870,26 +946,11 @@ class Level {
   /*
   Modify this function to change the level
   */
-  getWorldTile(z,x,y) {
+  getWorldTile(z, x, y) {
     if (z === this.playerpos[0] && x === this.playerpos[1] && y === this.playerpos[2]) {
       return PLAYER;
     }
-
-    var output = EMPTY;
-    if (this.map_id == WETLANDS) {
-      return getWetlandTile(z, x, y);
-    } else if (this.map_id == SPINNING_SECTORS) {
-      return getSpinningSectorsTile(z, x, y);
-    } else if (this.map_id == RECTANGLES) {
-      return getRectanglesLevelTile(z, x, y);
-    } else if (this.map_id == CUBE_FRAME) {
-      return getCubeFrameTile(z, x, y);
-    } else if (this.map_id == INTRO) {
-      return getIntroTile(z, x, y);
-    }
-    else {
-      console.assert(false);
-    }
+    return this.getMapTile(z, x, y);
   }
 
   getTile(z,x,y) {
@@ -993,39 +1054,6 @@ class Level {
 
     return positionChanged || offsetChanged || vertical_player_correction_changed || horizontal_player_correction_changed || (this.map_id==SPINNING_SECTORS);
   }
-
-  getFreshIterator() {
-    // Extra coordinates to be injected into the loop. Should be sorted in the
-    // same way as sortedCoordinates.
-    var extra_coordinates = [this.playerpos.slice(0)];
-
-    var block_index = 0;
-    var extra_index = 0;
-
-    var that = this;
-
-    return function() {
-      console.assert(block_index <= that.sortedCoordinates.length);
-      console.assert(extra_index <= extra_coordinates.length);
-      if (block_index == that.sortedCoordinates.length && extra_index == extra_coordinates.length) {
-        return null;
-      }
-
-      // This logic basically mixes the two arrays together.
-      if (block_index >= that.sortedCoordinates.length) {
-        return extra_coordinates[extra_index++].slice(0);
-      } else if (extra_index >= extra_coordinates.length) {
-        return that.sortedCoordinates[block_index++].slice(0);
-      }
-
-      if (coordinateComparison(extra_coordinates[extra_index], that.sortedCoordinates[block_index]) < 0) {
-        return extra_coordinates[extra_index++].slice(0);
-      } else {
-        return that.sortedCoordinates[block_index++].slice(0);
-      }
-
-    }
-  }
 }
 
 // Singleton class for managing the entire flow.
@@ -1075,7 +1103,7 @@ function initialize() {
     keyStates[String.fromCharCode(event.keyCode)] = false;
 
     if (String.fromCharCode(event.keyCode) == "N") {
-      game.loadLevel(INTRO);
+      game.loadLevel(TESTER);
     }
   }, false);
 
