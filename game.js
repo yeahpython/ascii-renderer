@@ -25,6 +25,8 @@ var STREET_LIGHT = 3;
 var WAVE = 4;
 var INVISIBLE_BLOCK = 5;
 
+var MAX_FUEL = 10
+
 ///////////////////////////////////////////////////
 //                                               //
 // The things that follow aren't constants.      //
@@ -180,6 +182,7 @@ function render(lines, level) {
     var hasYZXNeighbor = level.getWorldTile(z+1, x-1, y-1) == SOLID_BLOCK;
 
     var hasYXBehindNeighbor = level.getWorldTile(z, x-1, y-1) == SOLID_BLOCK;
+
 
     // World coordinates -> "block" coordinates -> Screen coordinates
     var YY = Y -2*(z + offsetZ)                  +   (y + offsetY);
@@ -788,6 +791,8 @@ class Level {
     this.pvy = 0.02;
     this.pvz = 0.0;
 
+    this.jetpack_fuel = 0;
+
     // This is the (block) coordinate of the player in world coordinates.
     this.playerpos = [HEIGHT -1 /* z */, 0 /* x */, 0 /* y */];
     // This is the (block) coordinate of the camera in world coordinates.
@@ -833,7 +838,12 @@ class Level {
       this.pvy += a;
     }
     if (keyStates["J"] === true) {
-      this.pvz += 2 * a;
+      if (this.jetpack_fuel) {
+        this.pvz += 2 * a;
+        this.jetpack_fuel -= 1;
+      }
+    } else {
+      this.jetpack_fuel = 0;
     }
 
     // Velocity decay
@@ -884,6 +894,7 @@ class Level {
   projectOut(blocks) {
     var width = 0.3;
 
+    var any_iteration_pushed = false;
 
     for (var projection_iteration = 0; projection_iteration < 6; projection_iteration++) {
       var pushed = false;
@@ -947,7 +958,14 @@ class Level {
       }
       if (pushed == false) {
         break;
+      } else {
+        any_iteration_pushed = true;
       }
+    }
+
+
+    if (any_iteration_pushed) {
+      this.jetpack_fuel = MAX_FUEL;
     }
   }
 
