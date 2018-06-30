@@ -10,12 +10,12 @@ var x_center = WIDTH / 2;
 var y_center = DEPTH / 2;
 
 // Available levels
-var WETLANDS = 0;
-var SPINNING_SECTORS = 1;
-var RECTANGLES = 2;
-var CUBE_FRAME = 3;
-var INTRO = 4;
-var TESTER = 5;
+var INTRO = 0;
+var CUBE_FRAME = 1;
+var TESTER = 2;
+var SPINNING_SECTORS = 3;
+var WETLANDS = 4;
+var RECTANGLES = 5;
 
 // Enumeration of block types.
 var EMPTY = 0;
@@ -96,15 +96,7 @@ function tileIsVisible(tile) {
 }
 
 function coordinateComparison(a, b) {
-	var x_diff = a[1] - b[1];
-	if (x_diff) {
-		return x_diff;
-	}
-	var y_diff = a[2] - b[2];
-	if (y_diff) {
-		return y_diff;
-	}
-	return a[0] - b[0];
+  return a[1] - b[1] || a[2] - b[2] || a[0] - b[0];
 }
 
 // Returns a list of 3D coordinates corresponding to the blocks that will be rendered completely
@@ -452,6 +444,9 @@ function getWetlandTile(z, x, y) {
 
 function getSpinningSectorsTile(z, x, y) {
   var output = EMPTY;
+  if (z == 0) {
+    return SOLID_BLOCK
+  }
   if (x*x + y*y + z*z < 64 && x*x + y*y + z*z > 16) {
     date = new Date()
     t = date.getTime()
@@ -804,9 +799,15 @@ class Level {
     if (this.map_id === INTRO) {
       let sorted_coordinates = this.getSortedCoordinatesFromConnectedComponent(3, 0, 0);
       this.getFreshIterator = createIteratorGenerator(sorted_coordinates, this);
-    } else {
+    } else if (this.map_id === TESTER){
       this.getFreshIterator = function() {
         let sorted_coordinates = this.getSortedCoordinatesFromConnectedComponent(2, this.playerpos[1], this.playerpos[2]);
+
+        return createIteratorGenerator(sorted_coordinates, this)();
+      }
+    } else {
+      this.getFreshIterator = function() {
+        let sorted_coordinates = this.getSortedCoordinatesFromConnectedComponent(0, this.playerpos[1], this.playerpos[2]);
 
         return createIteratorGenerator(sorted_coordinates, this)();
       }
@@ -1000,29 +1001,39 @@ class Level {
     to_search.push([z, x, y]);
     found_coordinate[keyForCoord(z,x,y)] = true;
     var selected_coordinates = [];
+
+    var dz;
+    var dx;
+    var dy;
+    var nz;
+    var nx;
+    var ny;
     for (var queue_index = 0; queue_index < to_search.length; queue_index++) {
       if (selected_coordinates.length > 1500) {
         break;
       }
       var coord = to_search[queue_index];
 
-      var candidate_coordinates = [];
       var is_exposed = false;
-      for (var dz = -1; dz <= 1; dz++) {
-      for (var dx = -1; dx <= 1; dx++) {
-      for (var dy = -1; dy <= 1; dy++) {
+
+      var n_added = 0;
+
+      for (dz = -1; dz <= 1; dz++) {
+      for (dx = -1; dx <= 1; dx++) {
+      for (dy = -1; dy <= 1; dy++) {
         // neighboring coordinate
-        var nz = coord[0] + dz;
-        var nx = coord[1] + dx;
-        var ny = coord[2] + dy;
+        nz = coord[0] + dz;
+        nx = coord[1] + dx;
+        ny = coord[2] + dy;
         var tile = this.getWorldTile(nz, nx, ny);
         if (tileIsVisible(tile)) {
           let coord_string = keyForCoord(nz, nx, ny);
           if (found_coordinate[coord_string] !== true) {
-            candidate_coordinates.push([nz, nx, ny]);
+            to_search.push([nz, nx, ny]);
+            n_added++;
           }
-        } else if (Math.abs(dz) + Math.abs(dx) + Math.abs(dy) == 1) {
-          is_exposed = true;
+        } else {
+          is_exposed = is_exposed || (Math.abs(dz) + Math.abs(dx) + Math.abs(dy) == 1);
         }
       }
       }
@@ -1030,14 +1041,13 @@ class Level {
 
       if (is_exposed) {
         selected_coordinates.push(coord);
-        // console.log("exposed");
-        for (var i = 0; i < candidate_coordinates.length; i++) {
-          to_search.push(candidate_coordinates[i]);
-          let coord_string = keyForCoord(candidate_coordinates[i][0], candidate_coordinates[i][1], candidate_coordinates[i][2]);
-          found_coordinate[coord_string] = true;
+        // Mark the last few candidates as found.
+        for (var i = to_search.length - n_added; i < to_search.length; i++) {
+          found_coordinate[keyForCoord(to_search[i][0], to_search[i][1], to_search[i][2])] = true;
         }
       } else {
-        // console.log("not exposed", keyForCoord(coord[0], coord[1], coord[2]));
+        // Remove the last few candidates
+        to_search.splice(to_search.length - n_added, n_added);
       }
     }
     return selected_coordinates.sort(coordinateComparison);
@@ -1092,7 +1102,7 @@ class Game {
 
     var level_changed = this.level.update();
 
-    var needRedraw = level_changed || displayChanged || this.force_redraw || !(this.frame_id++ % 2);
+    var needRedraw = level_changed || displayChanged || this.force_redraw/* || !(this.frame_id++ % 2)*/;
 
     this.force_redraw = false;
 
@@ -1115,7 +1125,8 @@ class Game {
 function initialize() {
   blocks = generateBlockArray(HEIGHT, WIDTH, DEPTH);
   autoResize();
-  var level = new Level(INTRO);
+  var current_map = INTRO;
+  var level = new Level(current_map);
   var game = new Game(blocks, level);
 
   document.addEventListener("keydown", function(event) {
@@ -1126,7 +1137,8 @@ function initialize() {
     keyStates[String.fromCharCode(event.keyCode)] = false;
 
     if (String.fromCharCode(event.keyCode) == "N") {
-      game.loadLevel(TESTER);
+      current_map = (current_map + 1) % 4;
+      game.loadLevel(current_map);
     }
   }, false);
 
