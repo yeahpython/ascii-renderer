@@ -894,7 +894,7 @@ class Level {
   projectOut(blocks) {
     var width = 0.3;
 
-    var any_iteration_pushed = false;
+    var any_vertical_push = false;
 
     for (var projection_iteration = 0; projection_iteration < 6; projection_iteration++) {
       var pushed = false;
@@ -940,6 +940,7 @@ class Level {
             this.pvz = 0.0;
             if (z_off != 0.0) {
               pushed = true;
+              any_vertical_push = true;
             }
           } else if (Math.abs(x_off) < Math.abs(y_off)) {
             this.px += x_off;
@@ -958,13 +959,11 @@ class Level {
       }
       if (pushed == false) {
         break;
-      } else {
-        any_iteration_pushed = true;
       }
     }
 
 
-    if (any_iteration_pushed) {
+    if (any_vertical_push) {
       this.jetpack_fuel = MAX_FUEL;
     }
   }
