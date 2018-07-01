@@ -14,8 +14,9 @@ var INTRO = 0;
 var CUBE_FRAME = 1;
 var TESTER = 2;
 var SPINNING_SECTORS = 3;
-var WETLANDS = 4;
-var RECTANGLES = 5;
+var FIGURE_EIGHT = 4;
+var WETLANDS = 5;
+var RECTANGLES = 6;
 
 // Enumeration of block types.
 var EMPTY = 0;
@@ -490,6 +491,92 @@ function getSpinningSectorsTile(z, x, y) {
   return output;
 }
 
+function getFigureEightWorldTile(z, x, y) {
+  if (x < -20 || x > 20 || y < -20 || y > 20 || z < 0) {
+    return INVISIBLE_BLOCK;
+  }
+
+  if (x <= 18 && y <= 18 && x >= 2 && y >= 2) {
+    return INVISIBLE_BLOCK;
+  }
+
+  if (-x <= 18 && -y <= 18 && -x >= 2 && -y >= 2) {
+    return INVISIBLE_BLOCK;
+  }
+
+  if (x >= 2 && y <= -2) {
+    return INVISIBLE_BLOCK;
+  }
+
+  if (x <= -2 && y >= 2) {
+    return INVISIBLE_BLOCK;
+  }
+
+  if (z == 0) {
+    if (x > -2 && y > 18) {
+      return SOLID_BLOCK;
+    }
+
+    if (x < 2 && y < -18) {
+      return SOLID_BLOCK;
+    }
+
+    if (x > -2 && x < 2) {
+      return SOLID_BLOCK;
+    }
+    return INVISIBLE_BLOCK;
+  }
+
+  if (z > 0 && z < 5) {
+    if (x < -18 && y < -18) {
+      return SOLID_BLOCK;
+    }
+    if (x > 18 && y > 18) {
+      return SOLID_BLOCK;
+    }
+    if (x > -2 && y > 18) {
+      return EMPTY;
+    }
+
+    if (x < 2 && y < -18) {
+      return EMPTY;
+    }
+
+    if (x > -2 && x < 2) {
+      return EMPTY;
+    }
+    return INVISIBLE_BLOCK;
+  }
+
+  if (z == 5) {
+    if (y > -2 && x > 18) {
+      return SOLID_BLOCK;
+    }
+
+    if (y < 2 && x < -18) {
+      return SOLID_BLOCK;
+    }
+
+    if (y > -2 && y < 2) {
+      return SOLID_BLOCK;
+    }
+    if (x > -2 && y > 18) {
+      return EMPTY;
+    }
+
+    if (x < 2 && y < -18) {
+      return EMPTY;
+    }
+
+    if (x > -2 && x < 2) {
+      return EMPTY;
+    }
+    return INVISIBLE_BLOCK;
+  }
+
+  return EMPTY;
+}
+
 function getRectanglesLevelTile(z, x, y) {
   if (z == 0) {
     return SOLID_BLOCK;
@@ -714,6 +801,8 @@ function getMapFetcher(map_id) {
       return getSpinningSectorsTile;
     case RECTANGLES:
       return getRectanglesLevelTile;
+    case FIGURE_EIGHT:
+      return getFigureEightWorldTile;
     case CUBE_FRAME:
       return getCubeFrameTile;
     case INTRO:
@@ -773,7 +862,7 @@ class Level {
     this.vertical_camera_correction = 0;
 
     // Float coordinates of the user relative to the world coordinates.
-    if (this.map_id === INTRO) {
+    if (this.map_id === INTRO || this.map_id === FIGURE_EIGHT) {
       this.px = 0.0;
     } else {
       this.px = 15.0;
@@ -804,15 +893,17 @@ class Level {
     if (this.map_id === INTRO) {
       let sorted_coordinates = this.getSortedCoordinatesFromConnectedComponent(3, 0, 0);
       this.getFreshIterator = createIteratorGenerator(sorted_coordinates, this);
-    } else if (this.map_id === TESTER){
+    } else if (this.map_id === FIGURE_EIGHT) {
+      let sorted_coordinates = this.getSortedCoordinatesFromConnectedComponent(0, 0, 0);
+      this.getFreshIterator = createIteratorGenerator(sorted_coordinates, this);
+    }else {
       this.getFreshIterator = function() {
-        let sorted_coordinates = this.getSortedCoordinatesFromConnectedComponent(2, this.playerpos[1], this.playerpos[2]);
-
-        return createIteratorGenerator(sorted_coordinates, this)();
-      }
-    } else {
-      this.getFreshIterator = function() {
-        let sorted_coordinates = this.getSortedCoordinatesFromConnectedComponent(0, this.playerpos[1], this.playerpos[2]);
+        for (var i = this.playerpos[0]; i > this.playerpos[0] - 50; i--) {
+          if (tileIsSolid(this.getMapTile(i, this.playerpos[1], this.playerpos[2]))) {
+            break;
+          }
+        }
+        let sorted_coordinates = this.getSortedCoordinatesFromConnectedComponent(i, this.playerpos[1], this.playerpos[2]);
 
         return createIteratorGenerator(sorted_coordinates, this)();
       }
@@ -1154,7 +1245,7 @@ function initialize() {
     keyStates[String.fromCharCode(event.keyCode)] = false;
 
     if (String.fromCharCode(event.keyCode) == "N") {
-      current_map = (current_map + 1) % 4;
+      current_map = (current_map + 1) % 5;
       game.loadLevel(current_map);
     }
   }, false);
