@@ -889,14 +889,13 @@ class Level {
 
     this.getMapTile = getMapFetcher(this.map_id);
 
-
     if (this.map_id === INTRO) {
       let sorted_coordinates = this.getSortedCoordinatesFromConnectedComponent(3, 0, 0);
       this.getFreshIterator = createIteratorGenerator(sorted_coordinates, this);
     } else if (this.map_id === FIGURE_EIGHT) {
       let sorted_coordinates = this.getSortedCoordinatesFromConnectedComponent(0, 0, 0);
       this.getFreshIterator = createIteratorGenerator(sorted_coordinates, this);
-    }else {
+    } else {
       this.getFreshIterator = function() {
         for (var i = this.playerpos[0]; i > this.playerpos[0] - 50; i--) {
           if (tileIsSolid(this.getMapTile(i, this.playerpos[1], this.playerpos[2]))) {
