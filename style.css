@@ -2,6 +2,7 @@ body {
 	height:calc(100vh - 17px);
 	width:calc(100vw - 17px);
 	background-color: #042a33;
+	overflow:hidden;
 }
 
 #active-text {
@@ -16,4 +17,58 @@ body {
 	margin-left:auto;
 	margin-right:auto;
 	color: #15ffcd;
+}
+
+#active-text.levelDone {
+	animation: pulse 2s infinite;
+	animation-iteration-count: 1;
+	animation-fill-mode: forwards;
+}
+
+@keyframes pulse {
+	0%, 100% {
+	}
+	30% {
+		/*clip: rect(500px,500px,500px,500px);*/
+		background-color:#631d8e;
+		color: #f91bc9;
+		/*padding:50%;*/
+/*		margin-top: 50%;
+		height: 0%;*/
+		/*width: 0%;*/
+		/*margin:100px;*/
+		/*left: 100px;*/
+		/*box-shadow:inset 0px 0px 0px 100px #042a33;*/
+		/*transform:scale(3);*/
+
+		/*color: #9bff0a;*/
+
+/*		background-color:#119e26;
+		color:#d7f7a8;*/
+	}
+}
+
+
+#active-text.levelFailed {
+	animation: failed 1s infinite;
+	animation-iteration-count: 1;
+	animation-fill-mode: forwards;
+}
+
+@keyframes failed {
+	0%{
+	}
+	100% {
+/*		background-color:#590000;
+		color: #f91bc9;*/
+
+		background-color:black;
+		color: red;
+		filter: blur(10px);
+
+		/*color: #9bff0a;*/
+
+/*		background-color:#119e26;
+		color:#d7f7a8;*/
+	}
 }
