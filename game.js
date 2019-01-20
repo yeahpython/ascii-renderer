@@ -14,10 +14,11 @@ var INTRO = 0;
 var CUBE_FRAME = 1;
 var FIGURE_EIGHT = 2;
 var MOVING_MAP = 3;
-var TESTER = 4;
-var WETLANDS = 5;
-var RECTANGLES = 6;
-var SPINNING_SECTORS = 7;
+var PENROSE = 4;
+var TESTER = 5;
+var WETLANDS = 6;
+var RECTANGLES = 7;
+var SPINNING_SECTORS = 8;
 
 
 // Enumeration of block types.
@@ -683,6 +684,78 @@ function getMovingMapTile(z, x, y) {
   return EMPTY;
 }
 
+function getPenroseTile(z, x, y) {
+  return getPenroseTileInternal(z, x, y, false);
+}
+
+function getPenroseTileAlternative(z, x, y) {
+  return getPenroseTileInternal(z, x, y, true);
+}
+
+
+
+function getPenroseTileInternal(z, x, y, use_alternative_map) {
+  var X = ~~(x/5);
+
+  if (X < 1 || x > 51) {
+    return EMPTY;
+  }
+
+  var Y = ~~(y/5);
+
+  if (Y < 1 || Y > 10) {
+    return EMPTY;
+  }
+
+
+  if (use_alternative_map) {
+    if (Y >= 2 && y < 19 && x <= 35 && x > 29) {
+      if (z == -4) {
+        return SOLID_BLOCK;
+      }
+      return EMPTY;
+    }
+  }
+
+  if (Y > 1 && Y < 10 && X > 1 && x < 46) {
+    return EMPTY;
+  }
+
+  var target_height = 0;
+
+  if (Y == 1) {
+    target_height = - (~~(x/4.5)) / 2;
+    if (x > 35) {
+      return EMPTY;
+    }
+  }
+
+  if (X == 1) {
+    target_height = (Y - 1)/2;
+  }
+
+  if (Y == 10) {
+    target_height = 5 + (X - 2)/4;
+  }
+
+  if (x >= 46) {
+    // target_height = 8;
+    target_height = 7 + (55 - y) / 13;
+    if (!use_alternative_map && y < 34) {
+      return EMPTY;
+    }
+    if (use_alternative_map && y < 43) {
+      return EMPTY;
+    }
+  }
+
+
+  if (z == ~~target_height) {
+    return SOLID_BLOCK;
+  }
+  return EMPTY;
+}
+
 function getRectanglesLevelTile(z, x, y) {
   if (z == 0) {
     return SOLID_BLOCK;
@@ -922,6 +995,8 @@ function getMapFetcher(map_id) {
       return getFigureEightWorldTile;
     case MOVING_MAP:
       return getMovingMapTile;
+    case PENROSE:
+      return getPenroseTile;
     case CUBE_FRAME:
       return getCubeFrameTile;
     case INTRO:
@@ -984,13 +1059,16 @@ class Level {
     this.currently_leaving_level = false;
     this.currently_dying = false;
 
+    this.py = 0.0;
     // Float coordinates of the user relative to the world coordinates.
     if (this.map_id === INTRO || this.map_id === FIGURE_EIGHT || this.map_id === MOVING_MAP) {
       this.px = 0.0;
+    } else if (this.map_id === PENROSE) {
+      this.px = 6.0;
+      this.py = 6.0;
     } else {
       this.px = 15.0;
     }
-    this.py = 0.0;
     this.pz = 10.0;
 
     // Float coordinates of the camera relative to the world coordinates.
@@ -1014,6 +1092,8 @@ class Level {
 
     this.timestep = 0;
 
+    this.use_alternative_penrose_map = false;
+
     // Only used by FIGURE_EIGHT level.
     this.figureEightState = 0;
     if (this.map_id === INTRO) {
@@ -1022,6 +1102,11 @@ class Level {
     } else if (this.map_id === FIGURE_EIGHT) {
       let sorted_coordinates = this.getSortedCoordinatesFromConnectedComponent(0, 0, 0);
       this.getFreshIterator = createIteratorGenerator(sorted_coordinates, this);
+    } else if (this.map_id === PENROSE) {
+      this.getFreshIterator = function() {
+        let sorted_coordinates = this.getSortedCoordinatesFromConnectedComponent(0, 6, 6);
+        return createIteratorGenerator(sorted_coordinates, this)();
+      }
     } else if (this.map_id === MOVING_MAP) {
       this.getFreshIterator = function() {
         let sorted_coordinates = this.getSortedCoordinatesFromConnectedComponent(0, 10 * Math.round(this.playerpos[1] / 10), 10 * Math.round(this.playerpos[2] / 10) );
@@ -1293,6 +1378,70 @@ class Level {
     return selected_coordinates.sort(coordinateComparison);
   }
 
+  runMapTransformations() {
+    if (this.map_id != PENROSE) {
+      return;
+    }
+
+    // Default map is shaped like this:
+    //
+    //        XXXX
+    //           X
+    //     X     X
+    //     X     X
+    //     XXXXXXX
+
+    // Alternative map is shaped like this:
+    //
+    //        XXXX
+    //        X  X
+    //           X
+    //     X     X
+    //     XXXXXXX
+
+
+    // console.log(this.px , " ", this.py);
+    if (this.use_alternative_penrose_map === false) {
+      if (this.px > 30 && this.py <= 10) {
+        // console.log("approaching default map from above");
+        this.use_alternative_penrose_map = true;
+        this.getMapTile = getPenroseTileAlternative;
+      } else if (this.px > 40 && this.py <= 40) {
+        // console.log("approaching default map from below");
+        // Teleport player and camera
+        this.px -= 16.0;
+        this.cx -= 16.0;
+        this.py -= 24.0;
+        this.cy -= 24.0;
+        this.pz -= 12.0;
+        this.cz -= 12.0;
+        this.use_alternative_penrose_map = true;
+        this.getMapTile = getPenroseTileAlternative;
+      }
+    }
+
+    if (this.use_alternative_penrose_map === true) {
+      if (this.px > 30 && this.py > 18 && this.py < 22) {
+        // Need to ensure 18 >= (40 - 24)
+        // console.log("approaching alternative map from above");
+        this.use_alternative_penrose_map = false;
+
+        // teleport player and camera back
+        this.px += 16.0;
+        this.cx += 16.0;
+        this.py += 24.0;
+        this.cy += 24.0;
+        this.pz += 12.0;
+        this.cz += 12.0;
+        this.getMapTile = getPenroseTile;
+      } else if (this.px > 40 && this.py < 48) {
+        // console.log("approaching alternative map from below");
+        this.use_alternative_penrose_map = false;
+        this.getMapTile = getPenroseTile;
+      }
+    }
+  }
+
   update() {
     var oldpos = this.playerpos.slice(0);
     var oldoffset = [offsetZ, offsetX, offsetY];
@@ -1302,6 +1451,7 @@ class Level {
     // Position and velocity update
     if (this.map_id != SPINNING_SECTORS && !(this.currently_leaving_level && !this.currently_dying)) {
       this.physicsUpdate();
+      this.runMapTransformations();
       this.updateDiscreteCoordinates();
     }
 
@@ -1343,7 +1493,7 @@ class Game {
   }
 
   goToNextLevel() {
-    this.loadLevel((this.level.map_id + 1) % 4); // Only first four levels are good
+    this.loadLevel((this.level.map_id + 1) % 5); // Only first four levels are good
   }
 
   goToNextLevelSoon() {
