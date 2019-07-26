@@ -98,33 +98,25 @@ function getFlagInfo(level, z, x, y){
     }
   }
   if (level.map_id === FIGURE_EIGHT) {
+
+    // hack: Each flag is a prime number, mut
     let flag_number;
     if (y > 0) {
-      flag_number = 2;
+      flag_number = 0;
     }
     else if (x > 5) {
       flag_number = 1;
     } else {
-      flag_number = 3;
+      flag_number = 2;
     }
-    let difference_code = (((flag_number - level.figureEightState) % 3) + 3) % 3;
-    if (difference_code == 1) {
-      level.figureEightState += 1;
-    }
-    // if (difference_code == 2) {
-    //   level.figureEightState -= 1;
-    // }
-    if (level.figureEightState >= 10) {
-      return {message:["You made it!", "(" + level.figureEightState + " / 10)"], finished:true};
+    level.figureEightState[flag_number] = 1;
+    let score = level.figureEightState[0] + level.figureEightState[1] + level.figureEightState[2];
+
+    if (score >= 3) {
+      return {message:["You made it!", "( "+ score + " / 3)"], finished:true};
     }
 
-    if (difference_code != 2) {
-      return {message:["Keep going!", "(" + level.figureEightState + " / 10)"], finished:false};
-    }
-    if (difference_code == 2) {
-      return {message:["Wrong flag!", "(" + level.figureEightState + " / 10)"], finished:false};
-    }
-
+    return {message:["Keep going!", "(" + score + " / 3)"], finished:false};
   }
   return {message:["Finish!"], finished:true}
 };
@@ -1096,7 +1088,7 @@ class Level {
     this.timestamp = new Date();
 
     // Only used by FIGURE_EIGHT level.
-    this.figureEightState = 0;
+    this.figureEightState = [0, 0, 0];
     if (this.map_id === INTRO) {
       let sorted_coordinates = this.getSortedCoordinatesFromConnectedComponent(3, 0, 0);
       this.getFreshIterator = createIteratorGenerator(sorted_coordinates, this);
