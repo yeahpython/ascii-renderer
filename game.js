@@ -70,7 +70,7 @@ var offsetY = 20;
 function getFlagInfo(level, z, x, y){
   if (level.map_id === INTRO) {
     if (x < 40) {
-      return {message: ["Welcome!", "WASD to move,", "J to jetpack."],
+      return {message: ["Welcome!", "Arrows keys to move,", "spacebar to jetpack."],
               finished: false};
     } else {
       return {message:["Congratulations,", "you made it!"], finished:true};
@@ -707,7 +707,6 @@ function getPenroseTileInternal(z, x, y, use_alternative_map) {
     return EMPTY;
   }
 
-
   if (use_alternative_map) {
     if (Y >= 2 && y < 19 && x <= 35 && x > 29) {
       if (z == -4) {
@@ -731,11 +730,11 @@ function getPenroseTileInternal(z, x, y, use_alternative_map) {
   }
 
   if (X == 1) {
-    target_height = (Y - 1)/2;
+    target_height = (y - 5) / 12;
   }
 
-  if (Y == 10) {
-    target_height = 5 + (X - 2)/4;
+  if (Y == 10 && x >= 5) {
+    target_height = 3 + ((x + 1) / 12);
   }
 
   if (x >= 46) {
@@ -1094,6 +1093,8 @@ class Level {
 
     this.use_alternative_penrose_map = false;
 
+    this.timestamp = new Date();
+
     // Only used by FIGURE_EIGHT level.
     this.figureEightState = 0;
     if (this.map_id === INTRO) {
@@ -1127,37 +1128,50 @@ class Level {
   }
 
   physicsUpdate() {
+    var new_time = new Date();
+    var dt = (new_time - this.timestamp) / 16;
+    this.timestamp = new_time;
+
+    // Arrow keys or WASD all work
+    var UP = keyStates[38] || keyStates[87]
+    var DOWN = keyStates[40] || keyStates[83]
+    var LEFT = keyStates[37] || keyStates[65]
+    var RIGHT = keyStates[39] || keyStates[68]
+
+    // Space bar or J
+    var JETPACK = keyStates[32] || keyStates[74]
+
     // Gravity
-    this.pvz += -0.1;
+    this.pvz += -0.1 * dt;
 
     // User input
     var a = 0.02;
-    if (keyStates["A"] === true) {
-      this.pvx += a;
+    if (LEFT) {
+      this.pvx += a * dt;
     }
-    if (keyStates["D"] === true) {
-      this.pvx -= a;
+    if (RIGHT) {
+      this.pvx -= a * dt;
     }
-    if (keyStates["W"] === true) {
-      this.pvy -= a;
+    if (UP) {
+      this.pvy -= a * dt;
     }
-    if (keyStates["S"] === true) {
-      this.pvy += a;
+    if (DOWN) {
+      this.pvy += a * dt;
     }
-    if (keyStates["J"] === true) {
-      if (this.jetpack_fuel) {
-        this.pvz += 0.2;
-        this.jetpack_fuel -= 1;
+    if (JETPACK) {
+      if (this.jetpack_fuel > 0) {
+        this.pvz += 0.23 * dt * Math.cos(this.jetpack_fuel / MAX_FUEL);
+        this.jetpack_fuel -= 1 * dt;
       }
     } else {
       this.jetpack_fuel = 0;
     }
 
     // Velocity decay
-    if (!keyStates["A"] && !keyStates["D"] && !keyStates["W"] && !keyStates["S"] && !keyStates["J"]) {
-      this.pvx *= 0.9;
-      this.pvy *= 0.9;
-      this.pvz *= 0.9;
+    if (!LEFT && !RIGHT && !UP && !DOWN && !JETPACK) {
+      this.pvx *= Math.pow(0.8, dt);
+      this.pvy *= Math.pow(0.8, dt);
+      this.pvz *= Math.pow(0.8, dt);
     }
 
     // Velocity cap
@@ -1192,9 +1206,9 @@ class Level {
     var mini_vz = this.pvz / 10;
     var n_steps = this.currently_dying ? 1 : 10;
     for (var _ = 0; _ < n_steps; ++_) {
-      this.px += mini_vx;
-      this.py += mini_vy;
-      this.pz += mini_vz;
+      this.px += mini_vx * dt;
+      this.py += mini_vy * dt;
+      this.pz += mini_vz * dt;
       this.projectOut(blocks);
     }
   }
@@ -1477,7 +1491,7 @@ class Level {
     var offsetChanged = offsetZ != oldoffset[0] || offsetX != oldoffset[1] || offsetY != oldoffset[2];
     var horizontal_player_correction_changed = this.horizontal_player_correction != old_horizontal_player_correction;
     var vertical_player_correction_changed = this.vertical_player_correction != old_vertical_player_correction;
-    var demanded_refresh = (this.timestep % 10 == 0);
+    var demanded_refresh = this.map_id == MOVING_MAP && (this.timestep % 10 == 0);
     this.timestep += 1;
     return demanded_refresh || positionChanged || offsetChanged || vertical_player_correction_changed || horizontal_player_correction_changed || (this.map_id==SPINNING_SECTORS);
   }
@@ -1559,11 +1573,11 @@ function initialize() {
   game.loadLevel(INTRO);
 
   document.addEventListener("keydown", function(event) {
-    keyStates[String.fromCharCode(event.keyCode)] = true;
+    keyStates[event.keyCode] = true;
   }, false);
 
   document.addEventListener("keyup", function(event) {
-    keyStates[String.fromCharCode(event.keyCode)] = false;
+    keyStates[event.keyCode] = false;
 
     if (String.fromCharCode(event.keyCode) == "N") {
       game.goToNextLevel();
