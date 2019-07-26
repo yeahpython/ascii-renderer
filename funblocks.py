@@ -90,7 +90,7 @@ def clear(canvas):
 
 def display(canvas):
 	temp = ""
-	for line in canvas:    
+	for line in canvas:
 		for string in line:
 			temp += string
 		temp += "\n"
@@ -150,7 +150,7 @@ elif mode == "waves":
 				#distance = (x - 3.5)**2 + (y - 1.5) **2
 				#weighting = 25 * distance**-2
 				#height = 5 + weighting * math.sin(0.02 * t)
-				height = 4.5 + math.sin((t + x + y) * 0.2) * 4.5 
+				height = 4.5 + math.sin((t + x + y) * 0.2) * 4.5
 				for z in range(len(blocks)):
 					blocks[z][x][y] = 0 if abs(z - height) > 0.5 else 1
 		draw(blocks, canvas, t, order)
